@@ -1,0 +1,28 @@
+{
+    "symbolMasks.masks": [
+        {
+            "language": "cpp",
+            "patterns": [
+                {
+                    "pattern": "/\\*mut\\*/",
+                    "replace": "mut",
+                    "style": {
+                        "fontWeight": "bold"
+                    }
+                },
+                {
+                    "pattern": "\\.template ",
+                    "replace": ".",
+                },
+                {
+                    "pattern": "\\* _Nullable",
+                    "replace": " nullable",
+                },
+                {
+                    "pattern": "\\* _Nonnull",
+                    "replace": " nonnull",
+                }
+            ]
+        }
+    ]
+}
