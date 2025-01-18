@@ -10,7 +10,7 @@ inline constexpr std::size_t ceil_div(std::size_t dividee, std::size_t divider) 
     return (dividee + divider - 1) / divider;
 }
 
-inline uint64_t n_ones(uint64_t n) {
+inline constexpr uint64_t n_ones(uint64_t n) noexcept {
     return (1ul << n) - 1ul;
 }
 

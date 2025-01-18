@@ -111,23 +111,34 @@ inline constexpr bool local_reduced_iter(BitSymplectic<N> input, CallbackF f) no
                      return eq;
                  }) |
                  rgs::to<std::vector>();
+    // fmt::println("original: {} eqs: {}", input, eqs);
     auto&& available_gates = compute_gate_sets(eqs, input);
-
+    // fmt::println("available gates {}", available_gates);
     return local_reduced_iter_inner(input, 0, available_gates, f);
 }
 
 template <const std::size_t N>
 inline constexpr BitSymplectic<N> local_reduce(BitSymplectic<N> input) noexcept {
-    auto leftreduced = left_reduce(input);
-    auto minimum = leftreduced;
-    local_reduced_iter(input, [&minimum, leftreduced](BitSymplectic<N> matrix) {
-        if (minimum == leftreduced || matrix < minimum) { minimum = matrix; }
+    auto minimum = BitSymplectic<N>::null();
+    local_reduced_iter(input, [&minimum](BitSymplectic<N> matrix) {
+        if (minimum == BitSymplectic<N>::null() || matrix < minimum) { minimum = matrix; }
         return true;
     });
+    assert(minimum != BitSymplectic<N>::null());
     return minimum;
 }
 
 // NOLINTBEGIN
+TEST_FN(local_reduce0) {
+    std::array arr{Bv<6>(0b110001), Bv<6>(0b010111), Bv<6>(0b001010), Bv<6>(0b001110), Bv<6>(0b000110), Bv<6>(0b111010)};
+    auto original = BitSymplectic<3>::fromArray(arr);
+    auto matrix = original.hphaseh_r(0).hphaseh_l(2);
+    CHECK_NE(left_reduce(original.hphaseh_r(0)), left_reduce(original));
+
+    const auto reduced = local_reduce(original);
+    const auto result = local_reduce(matrix);
+    CHECK_EQ(reduced, result);
+}
 TEST_FN(local_reduce) {
     const auto reduced = local_reduce(BitSymplectic<5ul>::identity().cnot_l(2, 0).cnot_r(1, 2));
 
@@ -140,7 +151,7 @@ TEST_FN(local_reduce) {
     const auto matrix3 = reduced.phase_r(1ul).hadamard_l(1ul).hadamard_r(2ul).phase_r(2ul).phase_l(2ul).hphaseh_r(3ul).phase_r(4ul);
     CHECK_EQ(reduced, local_reduce(matrix3));
 
-    for (auto i = 0ul; i < 100ul; i++) {
+    for (auto i = 0ul; i < 1000ul; i++) {
         auto original = BitSymplectic<5z>::identity();
         perform_random_gates(original, 10, CliffordGate<5z>::all_gates(), Bv<2>(0b11));
         const auto reduced = local_reduce(original);

@@ -14,6 +14,16 @@
 #include "fmt/base.h"
 #include "range/v3/algorithm/all_of.hpp"
 #include "range/v3/algorithm/none_of.hpp"
+#include "range/v3/view/repeat.hpp"
+
+template <std::size_t RowN, std::size_t TimeN>
+inline constexpr uint64_t repeat_row(uint64_t n) noexcept {
+    auto result = 0ul;
+    for (auto i = 0ul; i < TimeN; i++) {
+        result |= (n << (i * RowN));
+    }
+    return result;
+}
 
 template <std::size_t N>
 class BitSymplectic {
@@ -54,16 +64,16 @@ class BitSymplectic {
         return result;
     }
 
-    [[nodiscard]] static inline constexpr uint64_t fromArray(const std::array<Bv<N>, VecN> matrix) noexcept {
+    [[nodiscard]] static inline constexpr BitSymplectic<N> fromArray(const std::array<Bv<VecN>, VecN> matrix) noexcept {
         auto&& result = BitSymplectic<N>(0ul, 0ul);
-        for (auto i = 0z; i < N; i++) {
+        for (auto i = 0ul; i < N; i++) {
             result.set_xrow(i, matrix[i]);
             result.set_zrow(i, matrix[i + N]);
         }
         assert(result.check_symplecticity());
         return result;
     }
-    [[nodiscard]] static inline constexpr uint64_t raw(Bv<N * VecN> xrows, Bv<N * VecN> zrows) noexcept {
+    [[nodiscard]] static inline constexpr BitSymplectic<N> raw(Bv<N * VecN> xrows, Bv<N * VecN> zrows) noexcept {
         auto&& result = BitSymplectic<N>(xrows, zrows);
         assert(result.check_symplecticity());
         return result;
@@ -244,6 +254,21 @@ class BitSymplectic {
         return result;
     }
     [[nodiscard]] inline constexpr std::size_t count_ones() const noexcept { return xrows.count_ones() + zrows.count_ones(); }
+
+    inline static const auto MASK_XCOLS = Bv<2 * N * N>(repeat_row<2 * N, N>(n_ones(N)));
+    inline static const auto MASK_ZCOLS = Bv<2 * N * N>(repeat_row<2 * N, N>(n_ones(N) << N));
+    [[nodiscard]] inline constexpr Bv<2 * N * N> kappa() const noexcept {
+        auto xrows_xcols = xrows & MASK_XCOLS;
+        auto xrows_zcols = xrows & MASK_ZCOLS;
+        auto zrows_xcols = zrows & MASK_XCOLS;
+        auto zrows_zcols = zrows & MASK_ZCOLS;
+        auto first_bits = xrows_xcols & (xrows_zcols >> N) & zrows_xcols & (zrows_zcols >> N);
+        assert(first_bits & MASK_XCOLS == first_bits);
+        auto second_bits = ((xrows_xcols << N) & xrows_zcols) ^ ((zrows_xcols << N) & zrows_zcols);
+        assert(second_bits & MASK_ZCOLS == second_bits);
+
+        return first_bits | second_bits;
+    }
 };
 
 template <std::size_t N>

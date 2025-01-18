@@ -1,12 +1,15 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <iterator>
 #include "fmt/format.h"
+#include "fmt/ranges.h"
 #include "range/v3/algorithm/none_of.hpp"
 #include "range/v3/range/concepts.hpp"
 #include "range/v3/view/transform.hpp"
 #include "ranges.hpp"
+#include "test.hpp"
 
 namespace tracker {
 
@@ -27,11 +30,15 @@ template <typename T, typename TrackerT>
 struct Cons;
 
 template <typename T, typename TrackerT = tracker::EmptyTracker<T>>
-struct List {
+class List {
     Cons<T, TrackerT>* _Nullable ptr;
 
-    using value_type = List<T, TrackerT>;
     explicit List(Cons<T, TrackerT>* _Nullable ptr) noexcept : ptr(ptr) {}
+
+   public:
+    constexpr void debug_check() const noexcept { assert(ptr == nullptr || uint64_t(ptr) > 0x300ul); }
+
+    using value_type = List<T, TrackerT>;
     explicit List() noexcept : ptr(nullptr) {}
 
     // NOLINTNEXTLINE(hicpp-explicit-conversions)
@@ -52,16 +59,16 @@ struct List {
     [[nodiscard]] constexpr List<T, TrackerT> begin() const noexcept { return *this; }
     [[nodiscard]] constexpr List<T, TrackerT> end() const noexcept { return List(); }
 
-    static Cons<T, TrackerT>* _Nullable last_allocated;  // DEBUG_ONLY
+    DEBUG_ONLY(inline static Cons<T, TrackerT>* _Nullable LAST_ALLOCATED = nullptr;)
 
     [[nodiscard]] constexpr List<T, TrackerT> append(T e) const noexcept {
         auto&& tracker = this->tracker().track(e);
-        auto nptr = new Cons(e, *this, tracker);  // NOLINT
-        assert(last_allocated = nptr; true);
+        auto nptr = new Cons(e, *this, tracker);  // NOLINT(cppcoreguidelines-owning-memory)
+        DEBUG_ONLY(List::LAST_ALLOCATED = nptr);
         return List(nptr);
     }
     constexpr void free() noexcept {
-        assert(last_allocated == nptr);
+        assert(List::LAST_ALLOCATED == ptr);
         delete ptr;
     }
 
@@ -74,6 +81,7 @@ struct List {
         return ptr->tail;
     }
     [[nodiscard]] constexpr TrackerT tracker() const noexcept {
+        assert(ptr == nullptr || uint64_t(ptr) > 0x300ul);
         if (ptr) {
             return ptr->tracker;
         } else {
@@ -93,7 +101,7 @@ struct Cons {
 
 template <typename T, typename TrackerT>
 auto format_as(List<T, TrackerT> list) {
-    return list | vw::transform([](auto e) { return fmt::format("{}", e.head()); }) | rgs::to<std::vector>();
+    return fmt::join(list | vw::transform([](auto e) { return fmt::format("{}", e.head()); }), " -> ");
 }
 
 static_assert(std::forward_iterator<List<int>>);

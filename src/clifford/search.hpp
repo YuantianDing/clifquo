@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <queue>
 #include <unordered_set>
 #include <vector>
@@ -47,14 +48,20 @@ template <const std::size_t N>
 
 // NOLINTBEGIN
 TEST_FN(optimal_circuit_search2) {
-    auto gates = CliffordGate<2ul>::all_gates();
+    auto gates = CliffordGate<2ul>::all_generator();
     auto result = optimal_circuit_search(gates);
     CHECK_EQ(result.size(), 4ul);
 }
 
 TEST_FN(optimal_circuit_search3) {
-    auto gates = CliffordGate<3ul>::all_gates();
+    auto gates = CliffordGate<3ul>::all_generator();
     auto result = optimal_circuit_search(gates);
     CHECK_EQ(result.size(), 27ul);
+}
+
+TEST_FN(optimal_circuit_search4) {
+    auto gates = CliffordGate<4ul>::all_generator();
+    auto result = optimal_circuit_search(gates);
+    CHECK_EQ(result.size(), 2363ul);
 }
 // NOLINTEND

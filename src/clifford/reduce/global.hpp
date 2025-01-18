@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include "../gates.hpp"
 #include "local.hpp"
 #include "permutation_helper.hpp"
@@ -22,6 +23,9 @@ inline constexpr Bv<2> bit_rank2x2(bool x00, bool x01, bool x10, bool x11) noexc
         default:
             __builtin_unreachable();
     }
+    // auto first_bit = x00 && x01 && x10 && x11;
+    // auto second_bit = (x00 && x01) != (x10 && x11);
+    // return Bv<2>(uint64_t(second_bit) << 1ul | uint64_t(first_bit));
 }
 
 template <const std::size_t N>
@@ -59,29 +63,49 @@ inline constexpr std::vector<BitSymplectic<N>> compute_permutation_set(BitSymple
 
 template <const std::size_t N>
 inline constexpr BitSymplectic<N> global_reduce(BitSymplectic<N> input) noexcept {
-    auto minimum = local_reduce(input);
+    auto minimum = BitSymplectic<N>::null();
     for (auto&& matrix : compute_permutation_set(input)) {
         auto&& reduced = local_reduce(matrix);
-        if (minimum == input || reduced < minimum) { minimum = reduced; }
+        if (minimum == BitSymplectic<N>::null() || reduced < minimum) { minimum = reduced; }
     }
+    assert(minimum != BitSymplectic<N>::null());
     return minimum;
 }
 
 // NOLINTBEGIN
-TEST_FN(global_reduce) {
-    {
-        auto original = BitSymplectic<5>::identity();
-        perform_random_gates(original, 15, CliffordGate<5z>::all_gates(), Bv<2>(0b11));
+TEST_FN(global_reduce0) {
+    std::array arr{Bv<6>(0b110101), Bv<6>(0b010000), Bv<6>(0b010001), Bv<6>(0b000100), Bv<6>(0b001010), Bv<6>(0b001100)};
+    auto original = BitSymplectic<3>::fromArray(arr);
+    const auto matrix = original.swap(1, 2);
+    // const auto matrix = original.swap(2, 3).swap(1, 3).swap(2, 4).swap(0, 4).hadamard_l(2).phase_r(0);
+
+    const auto reduced = global_reduce(original);
+    const auto result = global_reduce(matrix);
+    CHECK_EQ(reduced, result);
+}
+TEST_FN(global_reduce1) {
+    for (auto i = 0ul; i < 100ul; i++) {
+        auto original = BitSymplectic<3>::identity();
+        perform_random_gates(original, 15, CliffordGate<3>::all_gates(), Bv<2>(0b11));
+        auto matrix = original.swap(1, 2);
+        // const auto matrix = original.swap(2, 3).swap(1, 3).swap(2, 4).swap(0, 4).hadamard_l(2).phase_r(0);
+
         const auto reduced = global_reduce(original);
-        original = original.swap(2, 3).swap(1, 3).swap(2, 4).swap(0, 4).hadamard_l(2).phase_r(0);
-        const auto result = global_reduce(original);
+        const auto result = global_reduce(matrix);
         CHECK_EQ(reduced, result);
     }
+}
+TEST_FN(global_reduce2) {
     for (auto i = 0ul; i < 100ul; i++) {
         auto original = BitSymplectic<5z>::identity();
         perform_random_gates(original, 15, CliffordGate<5z>::all_gates(), Bv<2>(0b11));
         const auto reduced = global_reduce(original);
-        perform_random_gates(original, 30, CliffordGate<5z>::all_level_0_with_swap(), Bv<2>(0b11));
+        for (auto k = 0ul; k < 35; k++) {
+            perform_random_gates(original, 2, CliffordGate<5z>::all_level_0(), Bv<2>(0b11));
+            auto a = std::experimental::randint(0ul, 4ul);
+            auto b = std::experimental::randint(0ul, 4ul);
+            original.do_swap(a, (b == a) ? b : (b + 1) % 5);
+        }
         const auto result = global_reduce(original);
         CHECK_EQ(reduced, result);
     }

@@ -1,10 +1,14 @@
 #pragma once
 
+#include <algorithm>
+#include <cstdint>
 #include <experimental/random>
 #include <range/v3/view/concat.hpp>
 #include <variant>
+#include <vector>
 #include "../utils/decomposed.hpp"
 #include "bitsymplectic.hpp"
+#include "range/v3/view/for_each.hpp"
 
 template <typename T>
 [[nodiscard]] inline constexpr std::vector<T> concat(const std::vector<T>& a, const std::vector<T>& b) noexcept {  // NOLINT
@@ -38,6 +42,28 @@ template <typename T>
     const std::vector<T>& f
 ) noexcept {
     return concat5(concat(a, b), c, d, e, f);
+}
+
+enum class GeneratorOp { I, HP, PH };
+template <const std::size_t N>
+constexpr void perform_gen_op_l(BitSymplectic<N>& /*mut*/ input, GeneratorOp op, std::size_t i) noexcept {
+    if (op == GeneratorOp::HP) {
+        input.do_hadamard_l(i);
+        input.do_phase_l(i);
+    } else if (op == GeneratorOp::PH) {
+        input.do_phase_l(i);
+        input.do_hadamard_l(i);
+    }
+}
+template <const std::size_t N>
+constexpr void perform_gen_op_r(BitSymplectic<N>& /*mut*/ input, GeneratorOp op, std::size_t i) noexcept {
+    if (op == GeneratorOp::HP) {
+        input.do_hadamard_r(i);
+        input.do_phase_r(i);
+    } else if (op == GeneratorOp::PH) {
+        input.do_phase_r(i);
+        input.do_hadamard_r(i);
+    }
 }
 
 template <const std::size_t N>
@@ -75,7 +101,15 @@ class CliffordGate {
         std::size_t iqb;
         [[nodiscard]] constexpr bool operator==(const SWAP&) const = default;
     };
-    using Variant = std::variant<I, H, P, HPH, HP, PH, CNOT, SWAP>;
+
+    struct Generator {
+        GeneratorOp op_ctrl;
+        std::size_t ictrl;
+        GeneratorOp op_not;
+        std::size_t inot;
+        [[nodiscard]] constexpr bool operator==(const Generator&) const = default;
+    };
+    using Variant = std::variant<I, H, P, HPH, HP, PH, CNOT, SWAP, Generator>;
     Variant gate;
     explicit constexpr CliffordGate<N>(Variant gate) : gate(gate) {}
 
@@ -88,6 +122,9 @@ class CliffordGate {
     [[nodiscard]] static constexpr CliffordGate<N> hp(std::size_t iq) noexcept { return CliffordGate<N>(Variant(HP{iq})); }
     [[nodiscard]] static constexpr CliffordGate<N> cnot(std::size_t ictrl, std::size_t inot) noexcept { return CliffordGate<N>(CNOT{ictrl, inot}); }
     [[nodiscard]] static constexpr CliffordGate<N> swap(std::size_t iqa, std::size_t iqb) noexcept { return CliffordGate<N>(SWAP{iqa, iqb}); }
+    [[nodiscard]] static constexpr CliffordGate<N> generator(GeneratorOp opctrl, std::size_t ictrl, GeneratorOp opnot, std::size_t inot) noexcept {
+        return CliffordGate<N>(Generator{opctrl, ictrl, opnot, inot});
+    }
 
     [[nodiscard]] constexpr bool operator==(const CliffordGate<N>&) const = default;
     [[nodiscard]] constexpr bool operator!=(const CliffordGate<N>& other) const { return !(*this == other); }
@@ -114,6 +151,16 @@ class CliffordGate {
     [[nodiscard]] static constexpr std::vector<CliffordGate<N>> all_swap() noexcept {
         return vw::cartesian_product(vw::ints(0ul, N), vw::ints(0ul, N)) | vw::filter(decomposed([](auto a, auto b) { return a < b; })) |
                vw::transform(decomposed([](auto a, auto b) { return swap(a, b); })) | rgs::to<std::vector>();
+    }
+    [[nodiscard]] static constexpr std::vector<CliffordGate<N>> all_generator() noexcept {
+        std::vector<GeneratorOp> generator_ops{GeneratorOp::I, GeneratorOp::HP, GeneratorOp::PH};
+        std::vector<CliffordGate<N>> result;
+        for (auto [op1, op2] : vw::cartesian_product(generator_ops, generator_ops)) {
+            for (auto [a, b] : vw::cartesian_product(vw::ints(0ul, N), vw::ints(0ul, N))) {
+                if (a != b) { result.push_back(generator(op1, a, op2, b)); }
+            }
+        }
+        return result;
     }
     [[nodiscard]] static constexpr std::vector<CliffordGate<N>> all_gates() noexcept { return concat3(all_h(), all_p(), all_cnot()); }
     [[nodiscard]] static constexpr std::vector<CliffordGate<N>> all_level_0() noexcept {
@@ -145,6 +192,14 @@ class CliffordGate {
                     input.do_hadamard_l(gate.iq);
                 } else if constexpr (std::is_same_v<decltype(gate), CNOT>) {
                     input.do_cnot_l(gate.ictrl, gate.inot);
+                } else if constexpr (std::is_same_v<decltype(gate), SWAP>) {
+                    input.do_swap_l(gate.iqa, gate.iqb);
+                } else if constexpr (std::is_same_v<decltype(gate), Generator>) {
+                    perform_gen_op_l(/*mut*/ input, gate.op_ctrl, gate.ictrl);
+                    perform_gen_op_l(/*mut*/ input, gate.op_not, gate.inot);
+                    input.do_cnot_l(gate.ictrl, gate.inot);
+                } else {
+                    __builtin_unreachable();
                 }
             },
             gate
@@ -169,6 +224,42 @@ class CliffordGate {
                     input.do_hadamard_r(gate.iq);
                 } else if constexpr (std::is_same_v<decltype(gate), CNOT>) {
                     input.do_cnot_r(gate.ictrl, gate.inot);
+                } else if constexpr (std::is_same_v<decltype(gate), SWAP>) {
+                    input.do_swap_r(gate.iqa, gate.iqb);
+                } else if constexpr (std::is_same_v<decltype(gate), Generator>) {
+                    perform_gen_op_r(/*mut*/ input, gate.op_ctrl, gate.ictrl);
+                    perform_gen_op_r(/*mut*/ input, gate.op_not, gate.inot);
+                    input.do_cnot_r(gate.ictrl, gate.inot);
+                } else {
+                    __builtin_unreachable();
+                }
+            },
+            gate
+        );
+    }
+    [[nodiscard]] inline std::vector<std::size_t> used_qubits() const noexcept {
+        return std::visit(
+            [](auto gate) {
+                if constexpr (std::is_same_v<decltype(gate), I>) {
+                    return std::vector<std::size_t>();
+                } else if constexpr (std::is_same_v<decltype(gate), H>) {
+                    return std::vector<std::size_t>{gate.iq};
+                } else if constexpr (std::is_same_v<decltype(gate), P>) {
+                    return std::vector<std::size_t>{gate.iq};
+                } else if constexpr (std::is_same_v<decltype(gate), HPH>) {
+                    return std::vector<std::size_t>{gate.iq};
+                } else if constexpr (std::is_same_v<decltype(gate), HP>) {
+                    return std::vector<std::size_t>{gate.iq};
+                } else if constexpr (std::is_same_v<decltype(gate), PH>) {
+                    return std::vector<std::size_t>{gate.iq};
+                } else if constexpr (std::is_same_v<decltype(gate), CNOT>) {
+                    return std::vector<std::size_t>{gate.ictrl, gate.inot};
+                } else if constexpr (std::is_same_v<decltype(gate), SWAP>) {
+                    return std::vector<std::size_t>{gate.iqa, gate.iqb};
+                } else if constexpr (std::is_same_v<decltype(gate), Generator>) {
+                    return std::vector<std::size_t>{gate.ictrl, gate.inot};
+                } else {
+                    __builtin_unreachable();
                 }
             },
             gate
@@ -180,19 +271,23 @@ class CliffordGate {
                 if constexpr (std::is_same_v<decltype(gate), typename CliffordGate<N>::I>) {
                     return fmt::format("I");
                 } else if constexpr (std::is_same_v<decltype(gate), typename CliffordGate<N>::H>) {
-                    return fmt::format("H[{}]", gate.iq);
+                    return fmt::format("H({})", gate.iq);
                 } else if constexpr (std::is_same_v<decltype(gate), typename CliffordGate<N>::P>) {
-                    return fmt::format("P[{}]", gate.iq);
+                    return fmt::format("P({})", gate.iq);
                 } else if constexpr (std::is_same_v<decltype(gate), typename CliffordGate<N>::HPH>) {
-                    return fmt::format("HPH[{}]", gate.iq);
+                    return fmt::format("HPH({})", gate.iq);
                 } else if constexpr (std::is_same_v<decltype(gate), typename CliffordGate<N>::HP>) {
-                    return fmt::format("HP[{}]", gate.iq);
+                    return fmt::format("HP({})", gate.iq);
                 } else if constexpr (std::is_same_v<decltype(gate), typename CliffordGate<N>::PH>) {
-                    return fmt::format("PH[{}]", gate.iq);
+                    return fmt::format("PH({})", gate.iq);
                 } else if constexpr (std::is_same_v<decltype(gate), typename CliffordGate<N>::CNOT>) {
-                    return fmt::format("CNOT[{}, {}]", gate.ictrl, gate.inot);
+                    return fmt::format("CNOT({}, {})", gate.ictrl, gate.inot);
                 } else if constexpr (std::is_same_v<decltype(gate), typename CliffordGate<N>::SWAP>) {
-                    return fmt::format("SWAP[{}, {}]", gate.iqa, gate.iqb);
+                    return fmt::format("SWAP({}, {})", gate.iqa, gate.iqb);
+                } else if constexpr (std::is_same_v<decltype(gate), typename CliffordGate<N>::CNOT>) {
+                    return fmt::format("Gen({} {}, {} {})", gate.op_ctrl, gate.ictrl, gate.op_not, gate.inot);
+                } else {
+                    __builtin_unreachable();
                 }
             },
             gate
@@ -210,6 +305,13 @@ class CliffordGate {
     }
 };
 
+template <const std::size_t N>
+auto format_as(GeneratorOp gate) {
+    if (gate == GeneratorOp::I) { return "I"; }
+    if (gate == GeneratorOp::HP) { return "HP"; }
+    if (gate == GeneratorOp::PH) { return "PH"; }
+    __builtin_unreachable();
+}
 template <const std::size_t N>
 auto format_as(CliffordGate<N> gate) {
     return gate.fmt();

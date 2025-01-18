@@ -1,4 +1,4 @@
-add_rules("mode.debug", "mode.release")
+add_rules("mode.debug", "mode.release", "mode.profile", "mode.releasedbg")
 add_rules("plugin.compile_commands.autoupdate", {outputdir = "./"})
 add_requires("vcpkg::doctest", {alias = "doctest"})
 add_requires("vcpkg::fmt", {alias = "fmt"})
@@ -10,7 +10,6 @@ target("clifquo_test")
     add_files("src/test.cpp")
     add_packages("doctest", "fmt", "range-v3")
     set_languages("c++23")
-    set_optimize("none")
 
 target("clifquo")
     set_kind("binary")
@@ -20,7 +19,6 @@ target("clifquo")
     add_defines("DOCTEST_CONFIG_DISABLE")
     set_languages("c++23")
     add_cxxflags("-Wextra")
-    
 
 
 --
