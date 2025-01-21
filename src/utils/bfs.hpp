@@ -4,6 +4,7 @@
 #include <queue>
 #include <unordered_map>
 #include <vector>
+#include "../clifford/reduce/local.hpp"
 #include "fmt/base.h"
 
 namespace bfs {
@@ -24,8 +25,8 @@ constexpr std::unordered_map<Point, Data> search_entirely(std::pair<Point, Data>
             } else {
                 result.insert(next_point);
                 bfs_boundry.push(next_point);
-                if (result.size() % 5000 == 0) { fmt::println("Searching: {} {}", bfs_boundry.size(), result.size()); }
-                if (result.size() % 100000 == 0) { std::abort(); }
+                if (result.size() % 20000 == 0) { fmt::println(stderr, "Searching: {} {}", bfs_boundry.size(), result.size()); }
+                // if (result.size() % 200000 == 0) { std::abort(); }
             }
         }
     }

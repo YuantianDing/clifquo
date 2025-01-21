@@ -107,6 +107,11 @@ class Bv {
     [[nodiscard]] inline constexpr bool dot(Bv<N> vec) const noexcept { return (*this & vec).count_ones() % 2 != 0; }
 
     [[nodiscard]] inline constexpr uint64_t uint() const noexcept { return data; }
+
+    template <class Archive>
+    void serialize(Archive& archive) {
+        archive(data);
+    }
 };
 
 template <std::size_t N>

@@ -7,3 +7,4 @@ compile_commands.json
 .DS_Store
 nohup.out
 vtune-result
+result

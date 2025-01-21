@@ -3,13 +3,15 @@
 #include <doctest/doctest.h>
 #include <fmt/core.h>
 #include <fmt/ranges.h>
+#include <array>
+#include <boost/container/small_vector.hpp>
 #include <cassert>
 #include <range/v3/algorithm/all_of.hpp>
 #include <utility>
-#include <vector>
 #include "../bitsymplectic.hpp"
 #include "../gates.hpp"
 #include "left.hpp"
+#include "range/v3/algorithm/generate.hpp"
 #include "range/v3/view/enumerate.hpp"
 #include "range/v3/view/transform.hpp"
 
@@ -58,42 +60,35 @@ inline constexpr std::pair<BitSymplectic<N>, Bv<2>> right_chi_reduce_col(BitSymp
 }
 
 template <const std::size_t N>
-[[nodiscard]] inline constexpr std::vector<std::vector<CliffordGate<N>>>
-compute_gate_sets(const std::vector<Bv<2>>& eps, const BitSymplectic<N>& matrix) {
-    return eps | vw::enumerate | vw::transform(decomposed([&matrix](std::size_t i, Bv<2> eqs) {
-               auto vec = std::vector<CliffordGate<N>>();
-               if (eqs.uint() == 0b00) {
-                   vec = {CliffordGate<N>::i()};
-               } else if (eqs.uint() == 0b01) {
-                   vec = {CliffordGate<N>::i(), CliffordGate<N>::h(i)};
-               } else if (eqs.uint() == 0b10) {
-                   vec = {CliffordGate<N>::i(), CliffordGate<N>::hph(i)};
-               } else if (eqs.uint() == 0b11) {
-                   vec = {
-                       CliffordGate<N>::i(),    CliffordGate<N>::h(i),  CliffordGate<N>::p(i),
-                       CliffordGate<N>::hph(i), CliffordGate<N>::ph(i), CliffordGate<N>::hp(i),
-                   };
-               } else {
-                   __builtin_unreachable();
-               }
-               return vec | vw::filter([&matrix](CliffordGate<N> gate) {
-                          return gate == CliffordGate<N>::i() || left_reduce(matrix) != left_reduce(gate.apply_r(matrix));
-                      }) |
-                      rgs::to<std::vector>();
-           })) |
-           rgs::to<std::vector>();
+using LocalReduceGateSet = std::array<boost::container::small_vector<CliffordGate<N>, 2>, N>;
+
+template <const std::size_t N>
+[[nodiscard]] inline constexpr bool check_gate(CliffordGate<N> gate, const BitSymplectic<N>& matrix) {
+    return gate == CliffordGate<N>::i() || left_reduce(matrix) != left_reduce(gate.apply_r(matrix));
+}
+template <const std::size_t N>
+inline constexpr void compute_gate_sets(LocalReduceGateSet<N>& result, const std::vector<Bv<2>>& eps, const BitSymplectic<N>& matrix) {
+    for (auto&& [i, eqs] : eps | vw::enumerate) {
+        // Distribution: [20031833, 1705279, 0, 0, 0, 189598]
+        assert(result.size() == 0);
+        result[i].push_back(CliffordGate<N>::i());
+        if (eqs[0] && check_gate(CliffordGate<N>::h(i), matrix)) { result[i].push_back(CliffordGate<N>::h(i)); }
+        if (eqs[1] && check_gate(CliffordGate<N>::hph(i), matrix)) { result[i].push_back(CliffordGate<N>::hph(i)); }
+        if (eqs.uint() == 0b11) {
+            result[i].reserve(6);
+            if (check_gate(CliffordGate<N>::p(i), matrix)) { result[i].push_back(CliffordGate<N>::p(i)); }
+            if (check_gate(CliffordGate<N>::ph(i), matrix)) { result[i].push_back(CliffordGate<N>::ph(i)); }
+            if (check_gate(CliffordGate<N>::hp(i), matrix)) { result[i].push_back(CliffordGate<N>::hp(i)); }
+        }
+    }
 }
 
 template <const std::size_t N, typename CallbackF>
-inline constexpr bool local_reduced_iter_inner(
-    BitSymplectic<N> input,
-    std::size_t icol,
-    const std::vector<std::vector<CliffordGate<N>>>& available_gates,
-    CallbackF f
-) noexcept {
+inline constexpr bool
+local_reduced_iter_inner(BitSymplectic<N> input, std::size_t icol, const LocalReduceGateSet<N>& available_gates, CallbackF f) noexcept {
     if (icol == N) { return f(left_reduce(input)); }
 
-    return rgs::all_of(available_gates[icol], [input, icol, available_gates, f](CliffordGate<N> gate) {
+    return rgs::all_of(available_gates[icol], [input, icol, available_gates, f](CliffordGate<N> gate) {  // NOLINT
         auto matrix = gate.apply_r(input);
         auto x = chi(matrix.xcol(icol));
         auto z = chi(matrix.zcol(icol));
@@ -112,7 +107,8 @@ inline constexpr bool local_reduced_iter(BitSymplectic<N> input, CallbackF f) no
                  }) |
                  rgs::to<std::vector>();
     // fmt::println("original: {} eqs: {}", input, eqs);
-    auto&& available_gates = compute_gate_sets(eqs, input);
+    LocalReduceGateSet<N> available_gates;
+    compute_gate_sets(available_gates, eqs, input);
     // fmt::println("available gates {}", available_gates);
     return local_reduced_iter_inner(input, 0, available_gates, f);
 }

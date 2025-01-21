@@ -1,14 +1,16 @@
 #pragma once
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include "../gates.hpp"
+#include "fmt/base.h"
 #include "local.hpp"
 #include "permutation_helper.hpp"
 #include "range/v3/view/cartesian_product.hpp"
 
-inline constexpr Bv<2> bit_rank2x2(bool x00, bool x01, bool x10, bool x11) noexcept {
+inline constexpr Bv<2> bit_rank2x2_check(bool x00, bool x01, bool x10, bool x11) noexcept {
     switch (int(x00) + int(x01) + int(x10) + int(x11)) {
         case 0:
             return Bv<2>(0b00);
@@ -23,19 +25,28 @@ inline constexpr Bv<2> bit_rank2x2(bool x00, bool x01, bool x10, bool x11) noexc
         default:
             __builtin_unreachable();
     }
-    // auto first_bit = x00 && x01 && x10 && x11;
-    // auto second_bit = (x00 && x01) != (x10 && x11);
-    // return Bv<2>(uint64_t(second_bit) << 1ul | uint64_t(first_bit));
+}
+
+inline constexpr Bv<2> bit_rank2x2(bool x00, bool x01, bool x10, bool x11) noexcept {
+    auto first_bit = x00 || x01 || x10 || x11;
+    auto second_bit = (x00 && x11) != (x10 && x01);
+    auto result = Bv<2>(uint64_t(second_bit) << 1ul | uint64_t(first_bit));
+    assert(result == bit_rank2x2_check(x00, x01, x10, x11));
+    return result;
 }
 
 template <const std::size_t N>
 inline constexpr Bv<N * N * 2> kappa(BitSymplectic<N> input) noexcept {
-    auto result = Bv<N * N * 2>::zero();
-    for (auto [i, j] : vw::cartesian_product(vw::ints(0ul, N), vw::ints(0ul, N))) {
-        auto rank = bit_rank2x2(input.get(i, j), input.get(i, j + N), input.get(i + N, j), input.get(i + N, j + N));
-        result = result.update_slice(i * N + j, rank);
-    }
-    return result;
+    DEBUG_ONLY({
+        auto result = Bv<N * N * 2>::zero();
+        for (auto [i, j] : vw::cartesian_product(vw::ints(0ul, N), vw::ints(0ul, N))) {
+            auto rank = bit_rank2x2(input.get(i, j), input.get(i, j + N), input.get(i + N, j), input.get(i + N, j + N));
+            result = result.update(i * 2 * N + j, rank[0]);
+            result = result.update(i * 2 * N + j + N, rank[1]);
+        }
+        assert(result == input.kappa());
+    });
+    return input.kappa();
 }
 
 template <const std::size_t N>

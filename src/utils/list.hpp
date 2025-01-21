@@ -88,6 +88,10 @@ class List {
             return TrackerT();
         }
     }
+
+    [[nodiscard]] constexpr std::vector<T> to_vec() const noexcept {
+        return *this | vw::transform([](auto e) { return e.head(); }) | rgs::to<std::vector>();
+    }
 };
 
 template <typename T, typename TrackerT>

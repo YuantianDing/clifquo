@@ -262,12 +262,17 @@ class BitSymplectic {
         auto xrows_zcols = xrows & MASK_ZCOLS;
         auto zrows_xcols = zrows & MASK_XCOLS;
         auto zrows_zcols = zrows & MASK_ZCOLS;
-        auto first_bits = xrows_xcols & (xrows_zcols >> N) & zrows_xcols & (zrows_zcols >> N);
-        assert(first_bits & MASK_XCOLS == first_bits);
-        auto second_bits = ((xrows_xcols << N) & xrows_zcols) ^ ((zrows_xcols << N) & zrows_zcols);
-        assert(second_bits & MASK_ZCOLS == second_bits);
+        auto first_bits = xrows_xcols | (xrows_zcols >> N) | zrows_xcols | (zrows_zcols >> N);
+        assert((first_bits & MASK_XCOLS) == first_bits);
+        auto second_bits = ((xrows_xcols << N) & zrows_zcols) ^ ((zrows_xcols << N) & xrows_zcols);
+        assert((second_bits & MASK_ZCOLS) == second_bits);
 
         return first_bits | second_bits;
+    }
+
+    template <class Archive>
+    void serialize(Archive& archive) {
+        archive(xrows, zrows);
     }
 };
 
