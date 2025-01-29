@@ -10,7 +10,7 @@ void clifsearch() {
 
     if (std::filesystem::exists(path)) { return; }
 
-    auto gates = CliffordGenerator<N>::all_generator();
+    auto gates = clifford::CliffordGenerator<N>::all_generator();
     auto result = optimal_circuit_search(gates);
     fmt::println("Clifford{}: {} circuits", N, result.size());
     save_clifford_table(result, path);

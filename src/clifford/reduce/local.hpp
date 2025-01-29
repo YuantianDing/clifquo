@@ -15,7 +15,7 @@
 #include "range/v3/view/enumerate.hpp"
 #include "range/v3/view/transform.hpp"
 
-#pragma once
+namespace clifford {
 
 template <const std::size_t N>
 inline constexpr Bv<N / 2> chi(Bv<N> input) {
@@ -123,36 +123,37 @@ inline constexpr BitSymplectic<N> local_reduce(BitSymplectic<N> input) noexcept 
     assert(minimum != BitSymplectic<N>::null());
     return minimum;
 }
+}  // namespace clifford
 
 // NOLINTBEGIN
 TEST_FN(local_reduce0) {
     std::array arr{Bv<6>(0b110001), Bv<6>(0b010111), Bv<6>(0b001010), Bv<6>(0b001110), Bv<6>(0b000110), Bv<6>(0b111010)};
-    auto original = BitSymplectic<3>::fromArray(arr);
+    auto original = clifford::BitSymplectic<3>::fromArray(arr);
     auto matrix = original.hphaseh_r(0).hphaseh_l(2);
     CHECK_NE(left_reduce(original.hphaseh_r(0)), left_reduce(original));
 
-    const auto reduced = local_reduce(original);
-    const auto result = local_reduce(matrix);
+    const auto reduced = clifford::local_reduce(original);
+    const auto result = clifford::local_reduce(matrix);
     CHECK_EQ(reduced, result);
 }
 TEST_FN(local_reduce) {
-    const auto reduced = local_reduce(BitSymplectic<5ul>::identity().cnot_l(2, 0).cnot_r(1, 2));
+    const auto reduced = clifford::local_reduce(clifford::BitSymplectic<5ul>::identity().cnot_l(2, 0).cnot_r(1, 2));
 
     const auto matrix1 = reduced.phase_l(1ul).hadamard_l(1ul).hadamard_l(2ul).phase_l(2ul).hphaseh_l(3ul).phase_l(4ul);
-    CHECK_EQ(reduced, local_reduce(matrix1));
+    CHECK_EQ(reduced, clifford::local_reduce(matrix1));
 
     const auto matrix2 = reduced.phase_r(0ul).hadamard_r(1ul).hadamard_r(2ul).phase_r(2ul).hphaseh_r(3ul).phase_r(4ul);
-    CHECK_EQ(reduced, local_reduce(matrix2));
+    CHECK_EQ(reduced, clifford::local_reduce(matrix2));
 
     const auto matrix3 = reduced.phase_r(1ul).hadamard_l(1ul).hadamard_r(2ul).phase_r(2ul).phase_l(2ul).hphaseh_r(3ul).phase_r(4ul);
-    CHECK_EQ(reduced, local_reduce(matrix3));
+    CHECK_EQ(reduced, clifford::local_reduce(matrix3));
 
     for (auto i = 0ul; i < 1000ul; i++) {
-        auto original = BitSymplectic<5z>::identity();
-        perform_random_gates(original, 10, CliffordGate<5z>::all_gates(), Bv<2>(0b11));
-        const auto reduced = local_reduce(original);
-        perform_random_gates(original, 20, CliffordGate<5z>::all_level_0(), Bv<2>(0b11));
-        const auto result = local_reduce(original);
+        auto original = clifford::BitSymplectic<5z>::identity();
+        perform_random_gates(original, 10, clifford::CliffordGate<5z>::all_gates(), Bv<2>(0b11));
+        const auto reduced = clifford::local_reduce(original);
+        perform_random_gates(original, 20, clifford::CliffordGate<5z>::all_level_0(), Bv<2>(0b11));
+        const auto result = clifford::local_reduce(original);
         CHECK_EQ(reduced, result);
     }
 }

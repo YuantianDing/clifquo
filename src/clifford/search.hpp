@@ -17,6 +17,8 @@
 #include "range/v3/algorithm/none_of.hpp"
 #include "reduce/global.hpp"
 
+namespace clifford {
+
 template <const std::size_t N>
 struct CliffordMatrixTracker {
     BitSymplectic<N> matrix = BitSymplectic<N>::identity();
@@ -56,7 +58,7 @@ template <const std::size_t N>
 template <const std::size_t N>
 inline constexpr void save_clifford_table(const CliffordTable<N>& table, const std::string& filename) {
     try {
-        std::ofstream os(filename, std::ios::binary | std::ios::trunc);
+        std::ofstream os(filename, std::ios::binary | std::ios::out);
         cereal::BinaryOutputArchive archive(os);
         archive(table.size());
         for (auto [matrix, circ] : table) {
@@ -82,16 +84,17 @@ inline constexpr std::unordered_map<BitSymplectic<N>, std::vector<CliffordGenera
     }
     return table;
 }
+}  // namespace clifford
 
 // NOLINTBEGIN
 TEST_FN(optimal_circuit_search2) {
-    auto gates = CliffordGenerator<2ul>::all_generator();
+    auto gates = clifford::CliffordGenerator<2ul>::all_generator();
     auto result = optimal_circuit_search(gates);
     CHECK_EQ(result.size(), 4ul);
 }
 
 TEST_FN(optimal_circuit_search3) {
-    auto gates = CliffordGenerator<3ul>::all_generator();
+    auto gates = clifford::CliffordGenerator<3ul>::all_generator();
     auto result = optimal_circuit_search(gates);
     CHECK_EQ(result.size(), 27ul);
 }

@@ -21,6 +21,7 @@ target("clifsearch")
     add_defines("DOCTEST_CONFIG_DISABLE")
     set_languages("c++23")
     add_cxxflags("-Wextra")
+    set_rundir("$(projectdir)")
 
 
 --

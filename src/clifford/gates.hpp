@@ -11,6 +11,7 @@
 #include "range/v3/algorithm/none_of.hpp"
 #include "range/v3/view/for_each.hpp"
 
+namespace clifford {
 template <typename T>
 [[nodiscard]] inline constexpr std::vector<T> concat(const std::vector<T>& a, const std::vector<T>& b) noexcept {  // NOLINT
     std::vector<T> result;
@@ -68,9 +69,9 @@ constexpr void perform_gen_op_r(BitSymplectic<N>& /*mut*/ input, CliffordGenerat
 }
 
 inline auto format_as(CliffordGeneratorOp op) {
-    if (op == CliffordGeneratorOp::I) { return "I"; }
-    if (op == CliffordGeneratorOp::HP) { return "HP"; }
-    if (op == CliffordGeneratorOp::PH) { return "PH"; }
+    if (op == clifford::CliffordGeneratorOp::I) { return "I"; }
+    if (op == clifford::CliffordGeneratorOp::HP) { return "HP"; }
+    if (op == clifford::CliffordGeneratorOp::PH) { return "PH"; }
     __builtin_unreachable();
 }
 
@@ -331,18 +332,6 @@ class CliffordGate {
 };
 
 template <const std::size_t N>
-auto format_as(CliffordGeneratorOp gate) {
-    if (gate == CliffordGeneratorOp::I) { return "I"; }
-    if (gate == CliffordGeneratorOp::HP) { return "HP"; }
-    if (gate == CliffordGeneratorOp::PH) { return "PH"; }
-    __builtin_unreachable();
-}
-template <const std::size_t N>
-auto format_as(CliffordGate<N> gate) {
-    return gate.fmt();
-}
-
-template <const std::size_t N>
 inline constexpr void
 perform_random_gates(BitSymplectic<N>& /*mut*/ input, std::size_t times, std::vector<CliffordGate<N>> gates, Bv<2ul> direction) noexcept {
     for (auto i = 0ul; i < times; i++) {
@@ -355,4 +344,18 @@ perform_random_gates(BitSymplectic<N>& /*mut*/ input, std::size_t times, std::ve
             gate.do_apply_r(input);
         }
     }
+}
+}  // namespace clifford
+
+// template <const std::size_t N>
+// auto format_as(clifford::CliffordGeneratorOp gate) {
+//     if (gate == clifford::CliffordGeneratorOp::I) { return "I"; }
+//     if (gate == clifford::CliffordGeneratorOp::HP) { return "HP"; }
+//     if (gate == clifford::CliffordGeneratorOp::PH) { return "PH"; }
+//     __builtin_unreachable();
+// }
+
+template <const std::size_t N>
+auto format_as(clifford::CliffordGate<N> gate) {
+    return gate.fmt();
 }
