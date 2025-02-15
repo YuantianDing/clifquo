@@ -5,6 +5,7 @@ add_requires("vcpkg::fmt", {alias = "fmt"})
 add_requires("vcpkg::range-v3", {alias = "range-v3"})
 add_requires("vcpkg::boost-container", {alias = "boost-container"})
 add_requires("vcpkg::cereal", {alias = "cereal"})
+add_requires("vcpkg::nlohmann-json", {alias = "nlohmann-json"})
 
 target("test")
     set_kind("binary")
@@ -23,6 +24,16 @@ target("clifsearch")
     add_cxxflags("-Wextra")
     set_rundir("$(projectdir)")
 
+target("qsearch")
+    set_kind("binary")
+    add_headerfiles("src/(**.hpp)")
+    add_files("src/qsearch/**.cpp")
+    add_files("src/qsearch.cpp")
+    add_packages("doctest", "fmt", "range-v3", "boost-container", "cereal", "nlohmann-json")
+    add_defines("DOCTEST_CONFIG_DISABLE")
+    set_languages("c++23")
+    add_cxxflags("-Wextra")
+    set_rundir("$(projectdir)")
 
 --
 -- If you want to known more usage about xmake, please see https://xmake.io

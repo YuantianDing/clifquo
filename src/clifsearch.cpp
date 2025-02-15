@@ -20,6 +20,6 @@ int main(int /*argc*/, char** /*argv*/) {
     clifsearch<2>();
     clifsearch<3>();
     clifsearch<4>();
-    clifsearch<5>();
+    // clifsearch<5>();
     return 0;
 }

@@ -70,7 +70,7 @@ template <const std::size_t N>
 inline constexpr void compute_gate_sets(LocalReduceGateSet<N>& result, const std::vector<Bv<2>>& eps, const BitSymplectic<N>& matrix) {
     for (auto&& [i, eqs] : eps | vw::enumerate) {
         // Distribution: [20031833, 1705279, 0, 0, 0, 189598]
-        assert(result.size() == 0);
+        assert(result[i].size() == 0);
         result[i].push_back(CliffordGate<N>::i());
         if (eqs[0] && check_gate(CliffordGate<N>::h(i), matrix)) { result[i].push_back(CliffordGate<N>::h(i)); }
         if (eqs[1] && check_gate(CliffordGate<N>::hph(i), matrix)) { result[i].push_back(CliffordGate<N>::hph(i)); }

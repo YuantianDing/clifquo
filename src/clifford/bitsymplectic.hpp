@@ -277,14 +277,13 @@ class BitSymplectic {
     }
 };
 
-}  // namespace clifford
-
 template <std::size_t N>
-auto format_as(clifford::BitSymplectic<N> matrix) {
+auto format_as(BitSymplectic<N> matrix) {
     auto xvec = vw::ints(0ul, N) | vw::transform([matrix](size_t i) { return fmt::format("{}", matrix.xrow(i)); }) | rgs::to<std::vector>();
     auto zvec = vw::ints(0ul, N) | vw::transform([matrix](size_t i) { return fmt::format("{}", matrix.zrow(i)); }) | rgs::to<std::vector>();
     return fmt::format("X[{}] Z[{}]", fmt::join(xvec, " "), fmt::join(zvec, " "));
 }
+}  // namespace clifford
 
 template <std::size_t N>
 struct std::hash<clifford::BitSymplectic<N>> {  // NOLINT

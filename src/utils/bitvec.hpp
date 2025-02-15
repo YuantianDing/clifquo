@@ -1,6 +1,7 @@
 #pragma once
 
 #include <doctest/doctest.h>
+#include <bit>
 #include <bitset>
 #include <cassert>
 #include <cstddef>
@@ -24,21 +25,23 @@ class Bv {
     inline explicit constexpr Bv(uint64_t data) noexcept : data(data) { assert(data <= MASK); }
     // Bv(const Bv<N>& o) : data(o.data) {}
     [[nodiscard]] static inline constexpr Bv<N> zero() noexcept { return Bv<N>(0ul); }
-    [[nodiscard]] static inline constexpr Bv<N> random() noexcept { return Bv<N>(std::rand); }
+    [[nodiscard]] static inline constexpr Bv<N> ones() noexcept { return Bv<N>(MASK); }
+    [[nodiscard]] static inline constexpr Bv<N> random() noexcept { return Bv<N>(uint64_t(std::rand()) & MASK); }
 
     [[nodiscard]] inline constexpr bool operator==(const Bv<N>& other) const = default;
     [[nodiscard]] inline constexpr bool operator!=(const Bv<N>& other) const = default;
     [[nodiscard]] inline constexpr auto operator<=>(const Bv<N>& other) const = default;
 
+    [[nodiscard]] inline constexpr bool none() const noexcept { return *this == Bv::zero(); }
+    [[nodiscard]] inline constexpr bool any() const noexcept { return *this != Bv::zero(); }
+    [[nodiscard]] inline constexpr bool all() const noexcept { return *this == Bv::ones(); }
+
     [[nodiscard]] inline constexpr Bv<N> operator&(const Bv<N>& other) const noexcept { return Bv<N>(data & other.data); }
     [[nodiscard]] inline constexpr Bv<N> operator|(const Bv<N>& other) const noexcept { return Bv<N>(data | other.data); }
     [[nodiscard]] inline constexpr Bv<N> operator^(const Bv<N>& other) const noexcept { return Bv<N>(data ^ other.data); }
+    [[nodiscard]] inline constexpr Bv<N> setminus(const Bv<N>& other) const noexcept { return Bv<N>(data & ~other.data); }
     [[nodiscard]] inline constexpr Bv<N> operator~() const noexcept { return Bv<N>(~data & MASK); }
 
-    // inline constexpr Bv<N>& operator=(const Bv<N>& other) noexcept {
-    //     data = other.data;
-    //     return *this;
-    // }
     inline constexpr Bv<N>& operator&=(const Bv<N>& other) noexcept {
         data &= other.data;
         return *this;
@@ -107,6 +110,14 @@ class Bv {
     [[nodiscard]] inline constexpr bool dot(Bv<N> vec) const noexcept { return (*this & vec).count_ones() % 2 != 0; }
 
     [[nodiscard]] inline constexpr uint64_t uint() const noexcept { return data; }
+    [[nodiscard]] inline constexpr int countr_zero() const noexcept { return std::countr_zero(data); }
+    [[nodiscard]] inline constexpr int countr_one() const noexcept { return std::countr_one(data); }
+    [[nodiscard]] inline constexpr int firstr_one() const noexcept { return std::countr_zero(data); }
+    [[nodiscard]] inline constexpr int firstr_zero() const noexcept { return std::countr_one(data); }
+    [[nodiscard]] inline constexpr int countl_zero() const noexcept { return std::countl_zero(data); }
+    [[nodiscard]] inline constexpr int countl_one() const noexcept { return std::countl_one(data); }
+    [[nodiscard]] inline constexpr int firstl_one() const noexcept { return 64 - 1 - std::countl_zero(data); }
+    [[nodiscard]] inline constexpr int firstl_zero() const noexcept { return 64 - 1 - std::countl_one(data); }
 
     template <class Archive>
     void serialize(Archive& archive) {

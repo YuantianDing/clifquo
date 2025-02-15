@@ -11,59 +11,60 @@
 #include "ranges.hpp"
 #include "test.hpp"
 
-namespace tracker {
+namespace info {
 
 template <typename T>
 struct EmptyTracker {
-    EmptyTracker track(const T& /*e*/) { return EmptyTracker(); }
+    EmptyTracker plus(const T& /*e*/) { return EmptyTracker(); }
 };
 
 template <typename T>
 struct LengthTracker {
     std::size_t length = 0;
-    LengthTracker track(const T& /*e*/) { return LengthTracker<T>(length + 1); }
+    LengthTracker plus(const T& /*e*/) { return LengthTracker<T>(length + 1); }
 };
 
-}  // namespace tracker
+}  // namespace info
 
-template <typename T, typename TrackerT>
+template <typename T, typename InfoTrackT>
 struct Cons;
 
-template <typename T, typename TrackerT = tracker::EmptyTracker<T>>
+template <typename T, typename InfoTrackT = info::EmptyTracker<T>>
 class List {
-    Cons<T, TrackerT>* _Nullable ptr;
+    Cons<T, InfoTrackT>* _Nullable ptr;
 
-    explicit List(Cons<T, TrackerT>* _Nullable ptr) noexcept : ptr(ptr) {}
+   protected:
+    explicit List(Cons<T, InfoTrackT>* _Nullable ptr) noexcept : ptr(ptr) {}
 
    public:
     constexpr void debug_check() const noexcept { assert(ptr == nullptr || uint64_t(ptr) > 0x300ul); }
 
-    using value_type = List<T, TrackerT>;
+    using value_type = List<T, InfoTrackT>;
     explicit List() noexcept : ptr(nullptr) {}
 
     // NOLINTNEXTLINE(hicpp-explicit-conversions)
     [[nodiscard]] operator bool() const noexcept { return ptr; }
-    [[nodiscard]] constexpr const List<T, TrackerT>& operator*() const noexcept { return *this; }
+    [[nodiscard]] constexpr const List<T, InfoTrackT>& operator*() const noexcept { return *this; }
 
-    constexpr List<T, TrackerT>& operator++() noexcept {
+    constexpr List<T, InfoTrackT>& operator++() noexcept {
         assert(ptr);
         *this = ptr->tail;
         return *this;
     }
-    constexpr List<T, TrackerT> operator++(int) noexcept {  // NOLINT
+    constexpr List<T, InfoTrackT> operator++(int) noexcept {  // NOLINT
         auto tmp = *this;
         assert(ptr);
         *this = ptr->tail;
         return tmp;
     }
-    [[nodiscard]] constexpr List<T, TrackerT> begin() const noexcept { return *this; }
-    [[nodiscard]] constexpr List<T, TrackerT> end() const noexcept { return List(); }
+    [[nodiscard]] constexpr List<T, InfoTrackT> begin() const noexcept { return *this; }
+    [[nodiscard]] constexpr List<T, InfoTrackT> end() const noexcept { return List(); }
 
-    DEBUG_ONLY(inline static Cons<T, TrackerT>* _Nullable LAST_ALLOCATED = nullptr;)
+    DEBUG_ONLY(inline static Cons<T, InfoTrackT>* _Nullable LAST_ALLOCATED = nullptr;)
 
-    [[nodiscard]] constexpr List<T, TrackerT> append(T e) const noexcept {
-        auto&& tracker = this->tracker().track(e);
-        auto nptr = new Cons(e, *this, tracker);  // NOLINT(cppcoreguidelines-owning-memory)
+    [[nodiscard]] constexpr List<T, InfoTrackT> plus(T e) const noexcept {
+        auto&& info = this->info().plus(e);
+        auto nptr = new Cons(e, *this, info);  // NOLINT(cppcoreguidelines-owning-memory)
         DEBUG_ONLY(List::LAST_ALLOCATED = nptr);
         return List(nptr);
     }
@@ -76,16 +77,23 @@ class List {
         assert(ptr);
         return ptr->head;
     }
-    [[nodiscard]] constexpr T& tail() const noexcept {
+    [[nodiscard]] constexpr List<T, InfoTrackT>& tail() const noexcept {
         assert(ptr);
         return ptr->tail;
     }
-    [[nodiscard]] constexpr TrackerT tracker() const noexcept {
+    [[nodiscard]] constexpr List<T, InfoTrackT> last() const noexcept {
+        auto p = *this;
+        while (p.tail()) {
+            p = p.tail();
+        }
+        return p;
+    }
+    [[nodiscard]] constexpr InfoTrackT info() const noexcept {
         assert(ptr == nullptr || uint64_t(ptr) > 0x300ul);
         if (ptr) {
-            return ptr->tracker;
+            return ptr->info;
         } else {
-            return TrackerT();
+            return InfoTrackT();
         }
     }
 
@@ -94,18 +102,18 @@ class List {
     }
 };
 
-template <typename T, typename TrackerT>
+template <typename T, typename InfoTrackT>
 struct Cons {
     T head;
-    List<T, TrackerT> tail;
-    TrackerT tracker;
+    List<T, InfoTrackT> tail;
+    InfoTrackT info;
 
-    explicit Cons(T head, List<T, TrackerT> tail, TrackerT tracker) : head(head), tail(tail), tracker(tracker) {}
+    explicit Cons(T head, List<T, InfoTrackT> tail, InfoTrackT info) : head(head), tail(tail), info(info) {}
 };
 
-template <typename T, typename TrackerT>
-auto format_as(List<T, TrackerT> list) {
-    return fmt::join(list | vw::transform([](auto e) { return fmt::format("{}", e.head()); }), " -> ");
+template <typename T, typename InfoTrackT>
+auto format_as(List<T, InfoTrackT> list) {
+    return fmt::format("[{}]", fmt::join(list | vw::transform([](auto e) { return fmt::format("{}", e.head()); }), ", "));
 }
 
 static_assert(std::forward_iterator<List<int>>);

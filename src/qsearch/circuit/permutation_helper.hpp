@@ -2,17 +2,18 @@
 
 #include <algorithm>
 #include <cstddef>
-#include "../bitsymplectic.hpp"
+#include "../../clifford/search.hpp"
+#include "../svsim/gate.hpp"
+#include "fmt/core.h"
 
-namespace clifford {
-
-template <const std::size_t N>
+namespace qsearch {
+template <typename T>
 class PermutationHelper;
 
-template <const std::size_t N>
+template <typename T>
 struct PermutationHelperIter {
     std::size_t i;
-    PermutationHelper<N>* ptr;
+    PermutationHelper<T>* _Nonnull ptr;
     using difference_type = ptrdiff_t;
     using value_type = PermutationHelperIter;
     inline constexpr bool operator==(const PermutationHelperIter& other) const noexcept = default;
@@ -43,34 +44,35 @@ struct PermutationHelperIter {
     }
 };
 
-template <const std::size_t N>
+template <typename T>
 class PermutationHelper {
    public:
-    std::array<std::size_t, N> perm;
-    BitSymplectic<N>* ptr;
+    std::array<std::size_t, T::SIZE> perm;
+    T* _Nonnull ptr;
 
-    using iterator = PermutationHelperIter<N>;
-    explicit constexpr PermutationHelper(BitSymplectic<N>* ref) noexcept : ptr(ref) {
-        for (auto i = 0ul; i < N; i++) {
+    using iterator = PermutationHelperIter<T>;
+    explicit constexpr PermutationHelper(T* _Nonnull ref) noexcept : ptr(ref) {
+        for (auto i = 0ul; i < T::SIZE; i++) {
             perm[i] = i;  // NOLINT
         }
     }
 
     [[nodiscard]] inline constexpr iterator begin() noexcept { return PermutationHelperIter{0, this}; }
-    [[nodiscard]] inline constexpr iterator end() noexcept { return PermutationHelperIter{N, this}; }
+    [[nodiscard]] inline constexpr iterator end() noexcept { return PermutationHelperIter{T::SIZE, this}; }
 };
 
-template <const std::size_t N>
-void swap(clifford::PermutationHelperIter<N> a, clifford::PermutationHelperIter<N> b) {
+template <typename T>
+inline void swap(PermutationHelperIter<T> a, PermutationHelperIter<T> b) {  // NOLINT
     assert(a.ptr == b.ptr);
     a.ptr->ptr->do_swap(a.i, b.i);
     std::swap(a.ptr->perm[a.i], b.ptr->perm[b.i]);  // NOLINT
 }
 
-template <const std::size_t N>
-auto format_as(const clifford::PermutationHelper<N>& helper) {
+template <typename T>
+auto format_as(const PermutationHelper<T>& helper) {
     return fmt::format("{}", helper.perm);
 }
-}  // namespace clifford
 
-static_assert(std::bidirectional_iterator<clifford::PermutationHelperIter<5>>);
+}  // namespace qsearch
+
+static_assert(std::bidirectional_iterator<qsearch::PermutationHelperIter<clifford::GraphEdge<qsearch::NQUBITS>>>);

@@ -345,6 +345,12 @@ perform_random_gates(BitSymplectic<N>& /*mut*/ input, std::size_t times, std::ve
         }
     }
 }
+
+template <const std::size_t N>
+auto format_as(CliffordGate<N> gate) {
+    return gate.fmt();
+}
+
 }  // namespace clifford
 
 // template <const std::size_t N>
@@ -354,8 +360,3 @@ perform_random_gates(BitSymplectic<N>& /*mut*/ input, std::size_t times, std::ve
 //     if (gate == clifford::CliffordGeneratorOp::PH) { return "PH"; }
 //     __builtin_unreachable();
 // }
-
-template <const std::size_t N>
-auto format_as(clifford::CliffordGate<N> gate) {
-    return gate.fmt();
-}

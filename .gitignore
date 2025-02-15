@@ -8,3 +8,6 @@ compile_commands.json
 nohup.out
 vtune-result
 result
+result.tex
+equivalences.json
+neighbors.json

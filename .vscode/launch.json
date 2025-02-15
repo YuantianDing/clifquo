@@ -8,7 +8,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug",
-            "program": "${workspaceFolder}/build/linux/x86_64/releasedbg/clifsearch",
+            "program": "${workspaceFolder}/build/linux/x86_64/releasedbg/qsearch",
             "args": [],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "build xmake",
