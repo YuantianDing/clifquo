@@ -6,8 +6,8 @@
 #include <range/v3/view/concat.hpp>
 #include <variant>
 #include <vector>
-#include "../utils/decomposed.hpp"
-#include "bitsymplectic.hpp"
+#include "../../utils/decomposed.hpp"
+#include "../bitsymplectic.hpp"
 #include "range/v3/algorithm/none_of.hpp"
 #include "range/v3/view/for_each.hpp"
 
@@ -44,85 +44,6 @@ template <typename T>
     const std::vector<T>& f
 ) noexcept {
     return concat5(concat(a, b), c, d, e, f);
-}
-
-enum class CliffordGeneratorOp : uint8_t { I, HP, PH };
-template <const std::size_t N>
-constexpr void perform_gen_op_l(BitSymplectic<N>& /*mut*/ input, CliffordGeneratorOp op, std::size_t i) noexcept {
-    if (op == CliffordGeneratorOp::HP) {
-        input.do_hadamard_l(i);
-        input.do_phase_l(i);
-    } else if (op == CliffordGeneratorOp::PH) {
-        input.do_phase_l(i);
-        input.do_hadamard_l(i);
-    }
-}
-template <const std::size_t N>
-constexpr void perform_gen_op_r(BitSymplectic<N>& /*mut*/ input, CliffordGeneratorOp op, std::size_t i) noexcept {
-    if (op == CliffordGeneratorOp::HP) {
-        input.do_hadamard_r(i);
-        input.do_phase_r(i);
-    } else if (op == CliffordGeneratorOp::PH) {
-        input.do_phase_r(i);
-        input.do_hadamard_r(i);
-    }
-}
-
-inline auto format_as(CliffordGeneratorOp op) {
-    if (op == clifford::CliffordGeneratorOp::I) { return "I"; }
-    if (op == clifford::CliffordGeneratorOp::HP) { return "HP"; }
-    if (op == clifford::CliffordGeneratorOp::PH) { return "PH"; }
-    __builtin_unreachable();
-}
-
-template <std::size_t N>
-struct CliffordGenerator {
-    CliffordGeneratorOp op_ctrl;
-    std::size_t ictrl;
-    CliffordGeneratorOp op_not;
-    std::size_t inot;
-    [[nodiscard]] inline constexpr bool operator==(const CliffordGenerator&) const = default;
-    inline constexpr void do_apply_l(BitSymplectic<N>& /*mut*/ input) const noexcept {
-        perform_gen_op_l(/*mut*/ input, op_ctrl, ictrl);
-        perform_gen_op_l(/*mut*/ input, op_not, inot);
-        input.do_cnot_l(ictrl, inot);
-    }
-    inline constexpr void do_apply_r(BitSymplectic<N>& /*mut*/ input) const noexcept {
-        perform_gen_op_r(/*mut*/ input, op_ctrl, ictrl);
-        perform_gen_op_r(/*mut*/ input, op_not, inot);
-        input.do_cnot_r(ictrl, inot);
-    }
-    [[nodiscard]] inline BitSymplectic<N> apply_l(BitSymplectic<N> input) const noexcept {
-        do_apply_l(input);
-        return input;
-    }
-    [[nodiscard]] inline BitSymplectic<N> apply_r(BitSymplectic<N> input) const noexcept {
-        do_apply_r(input);
-        return input;
-    }
-    [[nodiscard]] inline std::vector<std::size_t> used_qubits() const noexcept { return {ictrl, inot}; }
-    [[nodiscard]] inline std::string fmt() const noexcept { return fmt::format("Gen({} {}, {} {})", op_ctrl, ictrl, op_not, inot); }
-
-    [[nodiscard]] static constexpr std::vector<CliffordGenerator<N>> all_generator() noexcept {
-        std::vector<CliffordGeneratorOp> generator_ops{CliffordGeneratorOp::I, CliffordGeneratorOp::HP, CliffordGeneratorOp::PH};
-        std::vector<CliffordGenerator<N>> result;
-        for (auto [op1, op2] : vw::cartesian_product(generator_ops, generator_ops)) {
-            for (auto [a, b] : vw::cartesian_product(vw::ints(0ul, N), vw::ints(0ul, N))) {
-                if (a != b) { result.push_back(CliffordGenerator(op1, a, op2, b)); }
-            }
-        }
-        return result;
-    }
-
-    template <typename Archive>
-    void serialize(Archive& archive) {
-        archive(uint8_t(op_ctrl), ictrl, uint8_t(op_not), inot);
-    }
-};
-
-template <std::size_t N>
-inline auto format_as(CliffordGenerator<N> gate) {
-    return gate.fmt();
 }
 
 template <const std::size_t N>

@@ -9,7 +9,7 @@
 #include <range/v3/algorithm/all_of.hpp>
 #include <utility>
 #include "../bitsymplectic.hpp"
-#include "../gates.hpp"
+#include "gates.hpp"
 #include "left.hpp"
 #include "range/v3/algorithm/generate.hpp"
 #include "range/v3/view/enumerate.hpp"
@@ -128,7 +128,7 @@ inline constexpr BitSymplectic<N> local_reduce(BitSymplectic<N> input) noexcept 
 // NOLINTBEGIN
 TEST_FN(local_reduce0) {
     std::array arr{Bv<6>(0b110001), Bv<6>(0b010111), Bv<6>(0b001010), Bv<6>(0b001110), Bv<6>(0b000110), Bv<6>(0b111010)};
-    auto original = clifford::BitSymplectic<3>::fromArray(arr);
+    auto original = clifford::BitSymplectic<3>::from_array(arr);
     auto matrix = original.hphaseh_r(0).hphaseh_l(2);
     CHECK_NE(left_reduce(original.hphaseh_r(0)), left_reduce(original));
 

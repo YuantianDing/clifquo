@@ -43,7 +43,7 @@ class List {
     explicit List() noexcept : ptr(nullptr) {}
 
     // NOLINTNEXTLINE(hicpp-explicit-conversions)
-    [[nodiscard]] operator bool() const noexcept { return ptr; }
+    [[nodiscard]] explicit operator bool() const noexcept { return ptr; }
     [[nodiscard]] constexpr const List<T, InfoTrackT>& operator*() const noexcept { return *this; }
 
     constexpr List<T, InfoTrackT>& operator++() noexcept {

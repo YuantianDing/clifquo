@@ -22,6 +22,7 @@ class Bv {
 
    public:
     static const uint64_t MASK = (1ul << N) - 1ul;
+    inline explicit constexpr Bv() noexcept : data(0ul) {}
     inline explicit constexpr Bv(uint64_t data) noexcept : data(data) { assert(data <= MASK); }
     // Bv(const Bv<N>& o) : data(o.data) {}
     [[nodiscard]] static inline constexpr Bv<N> zero() noexcept { return Bv<N>(0ul); }

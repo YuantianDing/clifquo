@@ -4,7 +4,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include "../gates.hpp"
+#include "./gates.hpp"
 #include "fmt/base.h"
 #include "local.hpp"
 #include "permutation_helper.hpp"
@@ -90,7 +90,7 @@ inline constexpr BitSymplectic<N> global_reduce(BitSymplectic<N> input) noexcept
 // NOLINTBEGIN
 TEST_FN(global_reduce0) {
     std::array arr{Bv<6>(0b110101), Bv<6>(0b010000), Bv<6>(0b010001), Bv<6>(0b000100), Bv<6>(0b001010), Bv<6>(0b001100)};
-    auto original = clifford::BitSymplectic<3>::fromArray(arr);
+    auto original = clifford::BitSymplectic<3>::from_array(arr);
     const auto matrix = original.swap(1, 2);
     // const auto matrix = original.swap(2, 3).swap(1, 3).swap(2, 4).swap(0, 4).hadamard_l(2).phase_r(0);
 

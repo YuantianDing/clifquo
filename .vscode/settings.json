@@ -21,6 +21,30 @@
                 {
                     "pattern": "\\* _Nonnull",
                     "replace": " nonnull",
+                },
+                {
+                    "pattern": "\\[\\[nodiscard\\]\\] inline constexpr",
+                    "replace": "const_fn",
+                    "style": {
+                        "fontWeight": "bold",
+                        "color": "#85874d"
+                    }
+                },
+                {
+                    "pattern": "inline constexpr void",
+                    "replace": "const_procedure",
+                    "style": {
+                        "fontWeight": "bold",
+                        "color": "#85874d"
+                    }
+                },
+                {
+                    "pattern": "inline constexpr explicit",
+                    "replace": "const_ctor",
+                    "style": {
+                        "fontWeight": "bold",
+                        "color": "#85874d"
+                    }
                 }
             ]
         }

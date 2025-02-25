@@ -7,7 +7,7 @@
 #include <range/v3/algorithm/all_of.hpp>
 #include <utility>
 #include "../bitsymplectic.hpp"
-#include "../gates.hpp"
+#include "gates.hpp"
 
 namespace clifford {
 

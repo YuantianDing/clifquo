@@ -52,8 +52,8 @@ class BitSymplectic {
 
     [[nodiscard]] inline constexpr auto operator<=>(const BitSymplectic<N>& other) const noexcept = default;
 
-    [[nodiscard]] static inline constexpr BitSymplectic<N> null() noexcept { return BitSymplectic<N>(0, 0); }
-    [[nodiscard]] static inline constexpr BitSymplectic<N> identity() noexcept {
+    [[nodiscard]] inline constexpr static BitSymplectic<N> null() noexcept { return BitSymplectic<N>(0, 0); }
+    [[nodiscard]] inline constexpr static BitSymplectic<N> identity() noexcept {
         auto result = BitSymplectic<N>(0ul, 0ul);
         auto value = Bv<VecN>(1ul);
         for (auto i = 0ul; i < N; i++) {
@@ -65,7 +65,7 @@ class BitSymplectic {
         return result;
     }
 
-    [[nodiscard]] static inline constexpr BitSymplectic<N> fromArray(const std::array<Bv<VecN>, VecN> matrix) noexcept {
+    [[nodiscard]] inline constexpr static BitSymplectic<N> from_array(const std::array<Bv<VecN>, VecN>& matrix) noexcept {
         auto&& result = BitSymplectic<N>(0ul, 0ul);
         for (auto i = 0ul; i < N; i++) {
             result.set_xrow(i, matrix[i]);
@@ -74,7 +74,18 @@ class BitSymplectic {
         assert(result.check_symplecticity());
         return result;
     }
-    [[nodiscard]] static inline constexpr BitSymplectic<N> raw(Bv<N * VecN> xrows, Bv<N * VecN> zrows) noexcept {
+
+    [[nodiscard]] inline constexpr static BitSymplectic<N> from_qubit_array(const std::array<Bv<VecN * 2>, N>& matrix) noexcept {
+        auto&& result = BitSymplectic<N>(0ul, 0ul);
+        for (auto i = 0ul; i < N; i++) {
+            result.set_xrow(i, Bv<VecN>::slice(matrix[i], 0));
+            result.set_zrow(i, Bv<VecN>::slice(matrix[i], VecN));
+        }
+        assert(result.check_symplecticity());
+        return result;
+    }
+
+    [[nodiscard]] inline constexpr static BitSymplectic<N> raw(Bv<N * VecN> xrows, Bv<N * VecN> zrows) noexcept {
         auto&& result = BitSymplectic<N>(xrows, zrows);
         assert(result.check_symplecticity());
         return result;
@@ -87,6 +98,7 @@ class BitSymplectic {
             return zrows[(irow - N) * VecN + icol];
         }
     }
+    [[nodiscard]] inline constexpr Bv<2 * VecN> get_row(std::size_t irow) const noexcept { return xrow(irow).concat(zrow(irow)); }
     [[nodiscard]] inline constexpr Bv<VecN> xrow(std::size_t irow) const noexcept { return Bv<VecN>::slice(xrows, irow * VecN); }
     [[nodiscard]] inline constexpr Bv<VecN> zrow(std::size_t irow) const noexcept { return Bv<VecN>::slice(zrows, irow * VecN); }
 
