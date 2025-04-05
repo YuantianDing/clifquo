@@ -107,7 +107,7 @@ class Bv {
         return Bv<N + M>(other.uint() << N | data);
     }
 
-    [[nodiscard]] inline constexpr std::size_t count_ones() const noexcept { return std::bitset<N>(data).count(); }
+    [[nodiscard]] inline constexpr std::size_t count_ones() const noexcept { return std::popcount(data); }
     [[nodiscard]] inline constexpr bool dot(Bv<N> vec) const noexcept { return (*this & vec).count_ones() % 2 != 0; }
 
     [[nodiscard]] inline constexpr uint64_t uint() const noexcept { return data; }

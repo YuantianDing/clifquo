@@ -2,17 +2,19 @@
 
 #include <doctest/doctest.h>
 #include <fmt/core.h>
-#include <fmt/ranges.h>
+#include <algorithm>
 #include <cassert>
 #include <range/v3/algorithm/all_of.hpp>
 #include <utility>
+#include "../../circuit/gateset/symmetry3.hpp"
+#include "../../utils/fmt.hpp"
 #include "../bitsymplectic.hpp"
 #include "gates.hpp"
 
-namespace clifford {
+namespace clfd {
 
 template <const std::size_t N>
-inline constexpr BitSymplectic<N> left_reduce_row(BitSymplectic<N> input, std::size_t irow) noexcept {
+[[nodiscard]] inline constexpr BitSymplectic<N> left_reduce_row(BitSymplectic<N> input, std::size_t irow) noexcept {
     auto x = input.xrow(irow);
     auto z = input.zrow(irow);
     auto y = x ^ z;
@@ -42,7 +44,7 @@ inline constexpr BitSymplectic<N> left_reduce_row(BitSymplectic<N> input, std::s
 }
 
 template <const std::size_t N>
-inline constexpr BitSymplectic<N> left_reduce(BitSymplectic<N> input) noexcept {
+[[nodiscard]] inline constexpr BitSymplectic<N> left_reduce(BitSymplectic<N> input) noexcept {
     for (auto i = 0ul; i < N; i++) {
         input = left_reduce_row(input, i);
     }
@@ -50,18 +52,38 @@ inline constexpr BitSymplectic<N> left_reduce(BitSymplectic<N> input) noexcept {
     return input;
 }
 
-}  // namespace clifford
+template <std::size_t N>
+[[nodiscard]] inline constexpr circ::Symmetry3 left_reduce_row_backtrack(BitSymplectic<N> base, BitSymplectic<N> target, std::size_t irow) noexcept {
+    assert(left_reduce_row(base, irow).get_row(irow) == left_reduce_row(target, irow).get_row(irow));
+    std::array<circ::Symmetry3, 6> symmetry3_all = circ::Symmetry3::all();
+    for (auto perm : symmetry3_all) {
+        if (base.mul_l(perm, irow).get_row(irow) == target.get_row(irow)) { return perm; }
+    }
+    __builtin_unreachable();
+}
+
+template <const std::size_t N>
+[[nodiscard]] inline constexpr circ::Symmetry3N<N> left_reduce_backtrack(BitSymplectic<N> base, BitSymplectic<N> target) noexcept {
+    Bv<3ul * N> result;
+    for (auto i = 0ul; i < N; i++) {
+        result.update_slice(3ul * i, left_reduce_row(base, target, i));
+    }
+
+    return result;
+}
+
+}  // namespace clfd
 // NOLINTBEGIN
 TEST_FN(left_reduce) {
-    const auto reduced = clifford::BitSymplectic<5ul>::identity();
-    auto matrix = clifford::left_reduce(reduced.phase_l(1ul).hadamard_l(1ul).hadamard_l(2ul).phase_l(2ul).hphaseh_l(3ul).phase_l(4ul));
+    const auto reduced = clfd::BitSymplectic<5ul>::identity();
+    auto matrix = clfd::left_reduce(reduced.phase_l(1ul).hadamard_l(1ul).hadamard_l(2ul).phase_l(2ul).hphaseh_l(3ul).phase_l(4ul));
     CHECK_EQ(reduced, matrix);
     for (auto i = 0ul; i < 5ul; i++) {
-        auto original = clifford::BitSymplectic<5z>::identity();
-        perform_random_gates(original, 30, clifford::CliffordGate<5z>::all_gates(), Bv<2>(0b11));
-        const auto reduced = clifford::left_reduce(original);
-        perform_random_gates(original, 30, clifford::CliffordGate<5z>::all_level_0(), Bv<2>(0b01));
-        const auto result = clifford::left_reduce(original);
+        auto original = clfd::BitSymplectic<5z>::identity();
+        perform_random_gates(original, 30, clfd::CliffordGate<5z>::all_gates(), Bv<2>(0b11));
+        const auto reduced = clfd::left_reduce(original);
+        perform_random_gates(original, 30, clfd::CliffordGate<5z>::all_level_0(), Bv<2>(0b01));
+        const auto result = clfd::left_reduce(original);
         CHECK_EQ(reduced, result);
     }
 }

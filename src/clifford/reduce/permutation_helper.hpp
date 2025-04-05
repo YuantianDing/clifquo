@@ -4,7 +4,7 @@
 #include <cstddef>
 #include "../bitsymplectic.hpp"
 
-namespace clifford {
+namespace clfd {
 
 template <const std::size_t N>
 class PermutationHelper;
@@ -61,16 +61,16 @@ class PermutationHelper {
 };
 
 template <const std::size_t N>
-void swap(clifford::PermutationHelperIter<N> a, clifford::PermutationHelperIter<N> b) {
+void swap(clfd::PermutationHelperIter<N> a, clfd::PermutationHelperIter<N> b) {
     assert(a.ptr == b.ptr);
     a.ptr->ptr->do_swap(a.i, b.i);
     std::swap(a.ptr->perm[a.i], b.ptr->perm[b.i]);  // NOLINT
 }
 
 template <const std::size_t N>
-auto format_as(const clifford::PermutationHelper<N>& helper) {
+auto format_as(const clfd::PermutationHelper<N>& helper) {
     return fmt::format("{}", helper.perm);
 }
-}  // namespace clifford
+}  // namespace clfd
 
-static_assert(std::bidirectional_iterator<clifford::PermutationHelperIter<5>>);
+static_assert(std::bidirectional_iterator<clfd::PermutationHelperIter<5>>);

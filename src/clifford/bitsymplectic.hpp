@@ -2,21 +2,23 @@
 
 #include <doctest/doctest.h>
 #include <fmt/core.h>
-#include <fmt/ranges.h>
+#include <bit>
 #include <bitset>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <utility>
 #include "../utils/bitvec.hpp"
+#include "../utils/fmt.hpp"
 #include "../utils/ranges.hpp"
 #include "../utils/test.hpp"
 #include "fmt/base.h"
 #include "range/v3/algorithm/all_of.hpp"
 #include "range/v3/algorithm/none_of.hpp"
 #include "range/v3/view/repeat.hpp"
+#include "range/v3/view/unique.hpp"
 
-namespace clifford {
+namespace clfd {
 template <std::size_t RowN, std::size_t TimeN>
 inline constexpr uint64_t repeat_row(uint64_t n) noexcept {
     auto result = 0ul;
@@ -108,6 +110,22 @@ class BitSymplectic {
             result = result.update(i, xrows[i * VecN + icol]);
             result = result.update(i + N, zrows[i * VecN + icol]);
         }
+        return result;
+    }
+    inline static const auto MASK_COL_RAW = Bv<2 * N * N>(repeat_row<2 * N, N>(1));
+    [[nodiscard]] inline constexpr int col_metric(const std::size_t icol) const noexcept {
+        assert(((xrows >> icol) & MASK_COL_RAW).count_ones() == Bv<N>::slice(xcol(icol), 0).count_ones());
+        assert(((zrows >> icol) & MASK_COL_RAW).count_ones() == Bv<N>::slice(xcol(icol), N).count_ones());
+        assert(((xrows >> (icol + N)) & MASK_COL_RAW).count_ones() == Bv<N>::slice(zcol(icol), 0).count_ones());
+        assert(((zrows >> (icol + N)) & MASK_COL_RAW).count_ones() == Bv<N>::slice(zcol(icol), N).count_ones());
+
+        auto a = (xrows >> icol) & MASK_COL_RAW | ((zrows >> icol) & MASK_COL_RAW);
+        auto b = (xrows >> (icol + N)) & MASK_COL_RAW | ((zrows >> (icol + N)) & MASK_COL_RAW);
+        auto result = (a | (b << 1)).count_ones();
+        assert(
+            result == (Bv<N>::slice(xcol(icol), 0) | Bv<N>::slice(xcol(icol), N)).count_ones() +
+                          (Bv<N>::slice(zcol(icol), 0) | Bv<N>::slice(zcol(icol), N)).count_ones()
+        );
         return result;
     }
     [[nodiscard]] inline constexpr Bv<VecN> zcol(const std::size_t icol) const noexcept { return xcol(icol + N); }
@@ -225,6 +243,27 @@ class BitSymplectic {
         return result;
     }
 
+    template <typename... Args>
+    inline constexpr void do_mul_l(Args... args) noexcept {
+        do_symplectic_multiply_l(*this, args...);
+    }
+    template <typename... Args>
+    inline constexpr void do_mul_r(Args... args) noexcept {
+        do_symplectic_multiply_r(*this, args...);
+    }
+
+    template <typename... Args>
+    [[nodiscard]] inline constexpr BitSymplectic mul_l(Args... args) const noexcept {
+        auto result = *this;
+        result.do_mul_l(args...);
+        return result;
+    }
+    template <typename... Args>
+    [[nodiscard]] inline constexpr BitSymplectic mul_r(Args... args) const noexcept {
+        auto result = *this;
+        result.do_mul_r(args...);
+        return result;
+    }
     inline constexpr void do_swap_l(const std::size_t& i, const std::size_t& j) noexcept {
         const auto xi = xrow(i);
         const auto xj = xrow(j);
@@ -295,11 +334,20 @@ auto format_as(BitSymplectic<N> matrix) {
     auto zvec = vw::ints(0ul, N) | vw::transform([matrix](size_t i) { return fmt::format("{}", matrix.zrow(i)); }) | rgs::to<std::vector>();
     return fmt::format("X[{}] Z[{}]", fmt::join(xvec, " "), fmt::join(zvec, " "));
 }
-}  // namespace clifford
+}  // namespace clfd
+
+template <std::size_t N, typename GateT>
+[[nodiscard]] inline constexpr clfd::BitSymplectic<N> operator*(const clfd::BitSymplectic<N>& matrix, const GateT& gate) noexcept {
+    return matrix.mul_r(gate);
+}
+template <std::size_t N, typename GateT>
+[[nodiscard]] inline constexpr clfd::BitSymplectic<N> operator*(const GateT& gate, const clfd::BitSymplectic<N>& matrix) noexcept {
+    return matrix.mul_l(gate);
+}
 
 template <std::size_t N>
-struct std::hash<clifford::BitSymplectic<N>> {  // NOLINT
-    std::size_t operator()(const clifford::BitSymplectic<N>& s) const noexcept {
+struct std::hash<clfd::BitSymplectic<N>> {  // NOLINT
+    std::size_t operator()(const clfd::BitSymplectic<N>& s) const noexcept {
         const auto raw = s.as_raw();
         std::size_t h1 = std::hash<uint64_t>{}(raw.first);
         std::size_t h2 = std::hash<uint64_t>{}(raw.second);
@@ -309,85 +357,85 @@ struct std::hash<clifford::BitSymplectic<N>> {  // NOLINT
 
 // NOLINTBEGIN
 TEST_FN(testing_hadamard) {
-    auto matrix = clifford::BitSymplectic<5ul>::identity();
+    auto matrix = clfd::BitSymplectic<5ul>::identity();
     matrix.do_hadamard_l(1ul);
-    CHECK_NE(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_NE(matrix, clfd::BitSymplectic<5ul>::identity());
     matrix.do_hadamard_l(1ul);
-    CHECK_EQ(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_EQ(matrix, clfd::BitSymplectic<5ul>::identity());
 
     matrix.do_hadamard_r(1ul);
     matrix.do_hadamard_r(1ul);
-    CHECK_EQ(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_EQ(matrix, clfd::BitSymplectic<5ul>::identity());
 
     matrix.do_hadamard_l(1ul);
     matrix.do_hadamard_l(2ul);
     matrix.do_hadamard_r(1ul);
     matrix.do_hadamard_r(2ul);
-    CHECK_EQ(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_EQ(matrix, clfd::BitSymplectic<5ul>::identity());
 
     matrix.do_hadamard_r(4ul);
     matrix.do_hadamard_r(4ul);
-    CHECK_EQ(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_EQ(matrix, clfd::BitSymplectic<5ul>::identity());
 }
 
 TEST_FN(testing_phase) {
-    auto matrix = clifford::BitSymplectic<5ul>::identity();
+    auto matrix = clfd::BitSymplectic<5ul>::identity();
     matrix.do_phase_l(4ul);
-    CHECK_NE(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_NE(matrix, clfd::BitSymplectic<5ul>::identity());
     matrix.do_phase_l(4ul);
-    CHECK_EQ(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_EQ(matrix, clfd::BitSymplectic<5ul>::identity());
 
     matrix.do_phase_r(1ul);
     matrix.do_phase_r(1ul);
-    CHECK_EQ(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_EQ(matrix, clfd::BitSymplectic<5ul>::identity());
 
     matrix.do_phase_l(1ul);
     matrix.do_phase_l(2ul);
     matrix.do_phase_r(1ul);
     matrix.do_phase_r(2ul);
-    CHECK_EQ(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_EQ(matrix, clfd::BitSymplectic<5ul>::identity());
 
     matrix.do_phase_r(4ul);
     matrix.do_phase_r(4ul);
-    CHECK_EQ(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_EQ(matrix, clfd::BitSymplectic<5ul>::identity());
 }
 
 TEST_FN(testing_cnot) {
-    auto matrix = clifford::BitSymplectic<5ul>::identity();
+    auto matrix = clfd::BitSymplectic<5ul>::identity();
     matrix.do_cnot_l(1ul, 4ul);
-    CHECK_NE(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_NE(matrix, clfd::BitSymplectic<5ul>::identity());
     matrix.do_cnot_l(1ul, 4ul);
-    CHECK_EQ(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_EQ(matrix, clfd::BitSymplectic<5ul>::identity());
 
     matrix.do_cnot_r(2ul, 3ul);
     matrix.do_cnot_r(2ul, 3ul);
-    CHECK_EQ(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_EQ(matrix, clfd::BitSymplectic<5ul>::identity());
 
     matrix.do_cnot_l(1ul, 0ul);
     matrix.do_cnot_l(2ul, 0ul);
     matrix.do_cnot_r(1ul, 0ul);
     matrix.do_cnot_r(2ul, 0ul);
-    CHECK_EQ(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_EQ(matrix, clfd::BitSymplectic<5ul>::identity());
 
     matrix.do_cnot_l(1ul, 2ul);
     matrix.do_cnot_l(1ul, 3ul);
     matrix.do_cnot_l(1ul, 2ul);
     matrix.do_cnot_l(1ul, 3ul);
-    CHECK_EQ(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_EQ(matrix, clfd::BitSymplectic<5ul>::identity());
 
     matrix.do_cnot_r(1ul, 2ul);
     matrix.do_cnot_r(1ul, 3ul);
     matrix.do_cnot_r(1ul, 2ul);
     matrix.do_cnot_r(1ul, 3ul);
-    CHECK_EQ(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_EQ(matrix, clfd::BitSymplectic<5ul>::identity());
 
     matrix.do_hadamard_r(4ul);
     matrix.do_cnot_r(3ul, 4ul);
     matrix.do_hadamard_r(4ul);
-    CHECK_NE(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_NE(matrix, clfd::BitSymplectic<5ul>::identity());
     matrix.do_hadamard_r(3ul);
     matrix.do_cnot_r(4ul, 3ul);
     matrix.do_hadamard_r(3ul);
-    CHECK_EQ(matrix, clifford::BitSymplectic<5ul>::identity());
+    CHECK_EQ(matrix, clfd::BitSymplectic<5ul>::identity());
 }
 // NOLINTEND

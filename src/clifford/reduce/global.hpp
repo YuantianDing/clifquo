@@ -10,7 +10,7 @@
 #include "permutation_helper.hpp"
 #include "range/v3/view/cartesian_product.hpp"
 
-namespace clifford {
+namespace clfd {
 
 inline constexpr Bv<2> bit_rank2x2_check(bool x00, bool x01, bool x10, bool x11) noexcept {
     switch (int(x00) + int(x01) + int(x10) + int(x11)) {
@@ -85,43 +85,43 @@ inline constexpr BitSymplectic<N> global_reduce(BitSymplectic<N> input) noexcept
     return minimum;
 }
 
-}  // namespace clifford
+}  // namespace clfd
 
 // NOLINTBEGIN
 TEST_FN(global_reduce0) {
     std::array arr{Bv<6>(0b110101), Bv<6>(0b010000), Bv<6>(0b010001), Bv<6>(0b000100), Bv<6>(0b001010), Bv<6>(0b001100)};
-    auto original = clifford::BitSymplectic<3>::from_array(arr);
+    auto original = clfd::BitSymplectic<3>::from_array(arr);
     const auto matrix = original.swap(1, 2);
     // const auto matrix = original.swap(2, 3).swap(1, 3).swap(2, 4).swap(0, 4).hadamard_l(2).phase_r(0);
 
-    const auto reduced = clifford::global_reduce(original);
-    const auto result = clifford::global_reduce(matrix);
+    const auto reduced = clfd::global_reduce(original);
+    const auto result = clfd::global_reduce(matrix);
     CHECK_EQ(reduced, result);
 }
 TEST_FN(global_reduce1) {
     for (auto i = 0ul; i < 100ul; i++) {
-        auto original = clifford::BitSymplectic<3>::identity();
-        perform_random_gates(original, 15, clifford::CliffordGate<3>::all_gates(), Bv<2>(0b11));
+        auto original = clfd::BitSymplectic<3>::identity();
+        perform_random_gates(original, 15, clfd::CliffordGate<3>::all_gates(), Bv<2>(0b11));
         auto matrix = original.swap(1, 2);
         // const auto matrix = original.swap(2, 3).swap(1, 3).swap(2, 4).swap(0, 4).hadamard_l(2).phase_r(0);
 
-        const auto reduced = clifford::global_reduce(original);
-        const auto result = clifford::global_reduce(matrix);
+        const auto reduced = clfd::global_reduce(original);
+        const auto result = clfd::global_reduce(matrix);
         CHECK_EQ(reduced, result);
     }
 }
 TEST_FN(global_reduce2) {
     for (auto i = 0ul; i < 100ul; i++) {
-        auto original = clifford::BitSymplectic<5z>::identity();
-        perform_random_gates(original, 15, clifford::CliffordGate<5z>::all_gates(), Bv<2>(0b11));
-        const auto reduced = clifford::global_reduce(original);
+        auto original = clfd::BitSymplectic<5z>::identity();
+        perform_random_gates(original, 15, clfd::CliffordGate<5z>::all_gates(), Bv<2>(0b11));
+        const auto reduced = clfd::global_reduce(original);
         for (auto k = 0ul; k < 35; k++) {
-            perform_random_gates(original, 2, clifford::CliffordGate<5z>::all_level_0(), Bv<2>(0b11));
+            perform_random_gates(original, 2, clfd::CliffordGate<5z>::all_level_0(), Bv<2>(0b11));
             auto a = std::experimental::randint(0ul, 4ul);
             auto b = std::experimental::randint(0ul, 4ul);
             original.do_swap(a, (b == a) ? b : (b + 1) % 5);
         }
-        const auto result = clifford::global_reduce(original);
+        const auto result = clfd::global_reduce(original);
         CHECK_EQ(reduced, result);
     }
 }

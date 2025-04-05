@@ -11,7 +11,7 @@
 #include "range/v3/algorithm/none_of.hpp"
 #include "range/v3/view/for_each.hpp"
 
-namespace clifford {
+namespace clfd {
 template <typename T>
 [[nodiscard]] inline constexpr std::vector<T> concat(const std::vector<T>& a, const std::vector<T>& b) noexcept {  // NOLINT
     std::vector<T> result;
@@ -272,12 +272,12 @@ auto format_as(CliffordGate<N> gate) {
     return gate.fmt();
 }
 
-}  // namespace clifford
+}  // namespace clfd
 
 // template <const std::size_t N>
-// auto format_as(clifford::CliffordGeneratorOp gate) {
-//     if (gate == clifford::CliffordGeneratorOp::I) { return "I"; }
-//     if (gate == clifford::CliffordGeneratorOp::HP) { return "HP"; }
-//     if (gate == clifford::CliffordGeneratorOp::PH) { return "PH"; }
+// auto format_as(clfd::CliffordGeneratorOp gate) {
+//     if (gate == clfd::CliffordGeneratorOp::I) { return "I"; }
+//     if (gate == clfd::CliffordGeneratorOp::HP) { return "HP"; }
+//     if (gate == clfd::CliffordGeneratorOp::PH) { return "PH"; }
 //     __builtin_unreachable();
 // }

@@ -23,7 +23,9 @@ Checks: "*,
         -readability-redundant-inline-specifier,
         -cppcoreguidelines-pro-bounds-constant-array-index,
         -cppcoreguidelines-owning-memory,
-        -cppcoreguidelines-avoid-const-or-ref-data-members
+        -cppcoreguidelines-avoid-const-or-ref-data-members,
+        -bugprone-easily-swappable-parameters,
+        -cppcoreguidelines-avoid-do-while
 "
 HeaderFilterRegex: 'src/.*$'
 FormatStyle:     none

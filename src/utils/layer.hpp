@@ -3,8 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include "fmt.hpp"
 #include "fmt/format.h"
-#include "fmt/ranges.h"
 #include "range/v3/algorithm/find_if.hpp"
 #include "range/v3/algorithm/none_of.hpp"
 #include "range/v3/range/concepts.hpp"
@@ -43,7 +43,7 @@ class Layer {
     [[nodiscard]] inline constexpr bool operator==(const Layer& other) const noexcept = default;
     [[nodiscard]] inline constexpr bool operator!=(const Layer& other) const noexcept = default;
 
-    [[nodiscard]] inline const std::vector<Layer>& adjecents() const { return data->nexts; }
+    [[nodiscard]] inline const std::vector<Layer>& adjacents() const { return data->nexts; }
 
     [[nodiscard]] inline constexpr explicit operator bool() const { return data->prev; }
 
@@ -58,7 +58,7 @@ class Layer {
     }
     inline void add_adjecents(Layer layer) {
         assert(bool(layer) && layer.prev() == *this);
-        // assert(rgs::find_if(adjecents(), [layer](auto a) { return a.inner() == layer.inner(); }) == adjecents().end());
+        // assert(rgs::find_if(adjacents(), [layer](auto a) { return a.inner() == layer.inner(); }) == adjacents().end());
         data->nexts.emplace_back(layer);
     }
     inline std::vector<std::remove_const_t<InnerT>> to_vector() {
@@ -83,8 +83,8 @@ inline std::string format_all(Layer<InnerT, InfoTrackT> layer) {
     } else {
         ss << "ROOT";
     }
-    if (!layer.adjecents().empty()) {
-        ss << fmt::format("{{{}}}", fmt::join(layer.adjecents() | vw::transform([](auto a) { return format_all(a); }), ", "));
+    if (!layer.adjacents().empty()) {
+        ss << fmt::format("{{{}}}", fmt::join(layer.adjacents() | vw::transform([](auto a) { return format_all(a); }), ", "));
     }
     return ss.str();
 };

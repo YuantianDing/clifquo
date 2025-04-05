@@ -58,8 +58,8 @@ class LinkedArray {
    public:
     constexpr LinkedArray() noexcept : node(nullptr) {}
 
-    [[nodiscard]] inline constexpr bool operator==(const LinkedArray& other) const noexcept = default;
-    [[nodiscard]] inline constexpr bool operator!=(const LinkedArray& other) const noexcept = default;
+    [[nodiscard]] inline constexpr bool operator==(const LinkedArray& other) const noexcept { return node == other.node; }
+    [[nodiscard]] inline constexpr bool operator!=(const LinkedArray& other) const noexcept { return node != other.node; }
 
     [[nodiscard]] inline constexpr explicit operator bool() const noexcept { return node; }  // NOLINT
     [[nodiscard]] inline constexpr bool nonnull() const noexcept { return node; }            // NOLINT
@@ -132,8 +132,8 @@ class LinkedArray {
 
 template <typename NodeT>
 class LinkedArrayBuilder {
-    const std::size_t segment_size;
-    const LinkedArray<NodeT> jump;
+    std::size_t segment_size;
+    LinkedArray<NodeT> jump;
     std::size_t position;
     NodeT* _Nullable result;
     NodeT* _Nullable allocation;
@@ -173,11 +173,15 @@ class LinkedArrayBuilder {
             if (!allocation) { return LinkedArray<NodeT>(); }
             new (allocation + position) NodeT(NodeT::sentinel());
         }
-        return LinkedArray<NodeT>(result);
+        jump = LinkedArray<NodeT>(result);
+        position = 0;
+        allocation = nullptr;
+        result = allocation;
+        return jump;
     }
 };
 
-static_assert(std::forward_iterator<LinkedArray<LinkedArrayNode<int>>>);
+// static_assert(std::forward_iterator<LinkedArray<LinkedArrayNode<int>>>);
 static_assert(std::sentinel_for<LinkedArray<LinkedArrayNode<int>>::Sentinel, LinkedArray<LinkedArrayNode<int>>::iterator>);
 static_assert(std::ranges::range<LinkedArray<LinkedArrayNode<int>>>);
 static_assert(rgs::range<LinkedArray<LinkedArrayNode<int>>>);

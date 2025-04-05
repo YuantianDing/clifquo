@@ -23,27 +23,37 @@
                     "replace": " nonnull",
                 },
                 {
-                    "pattern": "\\[\\[nodiscard\\]\\] inline constexpr",
-                    "replace": "const_fn",
-                    "style": {
-                        "fontWeight": "bold",
-                        "color": "#85874d"
+                    "pattern": "::template ",
+                    "replace": "::",
+                },
+                {
+                    "pattern": "\\[\\[nodiscard\\]\\] inline( constexpr)?",
+                    "replace": {
+                        "[[nodiscard]] inline constexpr": {
+                            "text": "const_fn",
+                            "fontWeight": "bold",
+                            "color": "#85874d"
+                        },
+                        "[[nodiscard]] inline": {
+                            "text": "fn",
+                            "fontWeight": "bold",
+                            "color": "#85874d"
+                        },
                     }
                 },
                 {
-                    "pattern": "inline constexpr void",
-                    "replace": "const_procedure",
-                    "style": {
-                        "fontWeight": "bold",
-                        "color": "#85874d"
-                    }
-                },
-                {
-                    "pattern": "inline constexpr explicit",
-                    "replace": "const_ctor",
-                    "style": {
-                        "fontWeight": "bold",
-                        "color": "#85874d"
+                    "pattern": "inline( constexpr)? void",
+                    "replace": {
+                        "inline constexpr void": {
+                            "text": "const_proc",
+                            "fontWeight": "bold",
+                            "color": "#85874d"
+                        },
+                        "inline void": {
+                            "text": "proc",
+                            "fontWeight": "bold",
+                            "color": "#85874d"
+                        },
                     }
                 }
             ]
