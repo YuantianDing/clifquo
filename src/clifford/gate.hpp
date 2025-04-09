@@ -3,6 +3,7 @@
 #include <cereal/archives/binary.hpp>
 #include <cstdint>
 #include <cstdlib>
+#include <variant>
 #include "../circuit/gateset/clifford_generator.hpp"
 #include "../circuit/gateset/permutation.hpp"
 #include "../circuit/gateset/symmetry3.hpp"
@@ -93,6 +94,16 @@ inline constexpr void do_symplectic_multiply_r(BitSymplectic<N>& /*mut*/ input, 
     for (auto&& op : g) {
         do_symplectic_multiply_r(input, op);
     }
+}
+
+template <const std::size_t N, typename... VarT>
+inline constexpr void do_symplectic_multiply_l(BitSymplectic<N>& /*mut*/ input, const std::variant<VarT...>& g) noexcept {
+    std::visit([&input](auto&& op) { do_symplectic_multiply_l(input, op); }, g);
+}
+
+template <const std::size_t N, typename... VarT>
+inline constexpr void do_symplectic_multiply_r(BitSymplectic<N>& /*mut*/ input, const std::variant<VarT...>& g) noexcept {
+    std::visit([&input](auto&& op) { do_symplectic_multiply_r(input, op); }, g);
 }
 
 }  // namespace clfd

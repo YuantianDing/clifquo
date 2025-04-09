@@ -3,6 +3,7 @@
 #include <iterator>
 #include <range/v3/algorithm/all_of.hpp>
 #include <range/v3/algorithm/any_of.hpp>
+#include <range/v3/algorithm/count.hpp>
 #include <range/v3/algorithm/find_if.hpp>
 #include <range/v3/algorithm/none_of.hpp>
 #include <range/v3/numeric/accumulate.hpp>
@@ -45,15 +46,16 @@ auto rng_maybe(bool condition, RngA a) {
         return *this;                                         \
     }
 
-#define STATIC_ASSERT_RANGE(Self)                       \
-    static_assert(std::is_constructible_v<Self>);       \
-    static_assert(std::is_constructible_v<Self, Self>); \
-    static_assert(std::move_constructible<Self>);       \
-    static_assert(std::movable<Self>);                  \
-    static_assert(std::weakly_incrementable<Self>);     \
-    static_assert(std::forward_iterator<Self>);         \
-    static_assert(std::ranges::range<Self>);            \
-    static_assert(rgs::range<Self>);                    \
+#define STATIC_ASSERT_RANGE(Self)                              \
+    static_assert(std::is_constructible_v<Self>);              \
+    static_assert(std::is_constructible_v<Self, Self>);        \
+    static_assert(std::move_constructible<Self>);              \
+    static_assert(std::movable<Self>);                         \
+    static_assert(std::default_initializable<Self::iterator>); \
+    static_assert(std::weakly_incrementable<Self::iterator>);  \
+    static_assert(std::forward_iterator<Self::iterator>);      \
+    static_assert(std::ranges::range<Self>);                   \
+    static_assert(rgs::range<Self>);                           \
     static_assert(rgs::viewable_range<Self>);
 
 // NOLINTNEXTLINE

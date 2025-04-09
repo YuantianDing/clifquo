@@ -93,6 +93,16 @@ template <std::size_t N>
     return utils::factorial(N) * utils::factorial(N) * utils::power(6, N) / aut;
 }
 
+inline std::size_t symplectic_matrix_count(std::size_t n) {
+    std::size_t result = 1ul << (n * n);  // (1 << n**2)
+
+    for (std::size_t i = 2; i <= 2 * n; i += 2) {
+        result *= (1ul << i) - 1;  // (1 << i) - 1
+    }
+
+    return result;
+}
+
 }  // namespace clfd
 
 // NOLINTBEGIN
@@ -137,5 +147,9 @@ TEST_FN(quick_reduce_clif_gen) {
     fmt::println("{}", m1.as_raw());
 
     CHECK_EQ(quick_reduce(m0), quick_reduce(m1));
+}
+
+TEST_FN(symplectic_matrix_count) {
+    CHECK_EQ(clfd::symplectic_matrix_count(2), 720);
 }
 // NOLINTEND

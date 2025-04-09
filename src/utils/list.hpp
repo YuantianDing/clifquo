@@ -27,11 +27,9 @@ class List {
     using value_type = List<T>;
     using difference_type = std::ptrdiff_t;
 
-    explicit List() noexcept : ptr(nullptr) {}
+    List() noexcept : ptr(nullptr) {}
 
-    bool operator==(const List& other) const noexcept {
-        return bool(*this) == bool(other) || bool(*this) && head() == head() && tail() == other.tail();
-    }
+    bool operator==(const List& other) const noexcept { return ptr == other.ptr; }
     bool operator!=(const List& other) const noexcept { return !(*this == other); }
 
     // NOLINTNEXTLINE(hicpp-explicit-conversions)
@@ -55,8 +53,7 @@ class List {
     DEBUG_ONLY(inline static Cons<T>* _Nullable LAST_ALLOCATED = nullptr;)
 
     [[nodiscard]] constexpr List<T> plus(T e) const noexcept {
-        auto&& info = this->info().plus(e);
-        auto nptr = new Cons(e, *this, info);  // NOLINT(cppcoreguidelines-owning-memory)
+        auto nptr = new Cons(e, *this);  // NOLINT(cppcoreguidelines-owning-memory)
         DEBUG_ONLY(List::LAST_ALLOCATED = nptr);
         return List(nptr);
     }
